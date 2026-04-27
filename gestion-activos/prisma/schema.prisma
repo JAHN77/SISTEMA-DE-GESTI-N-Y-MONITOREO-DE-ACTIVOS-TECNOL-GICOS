@@ -4,10 +4,264 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../app/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+//////////////////////
+// ENUMS
+//////////////////////
+
+enum Role {
+  ADMIN
+  TECHNICIAN
+  USER
+}
+
+enum EstadoTecnico {
+  OPERATIVO
+  DANADO
+  EN_MANTENIMIENTO
+  EN_REPARACION
+  FUERA_DE_SERVICIO
+  DE_BAJA
+}
+
+enum EstadoUso {
+  DISPONIBLE
+  ASIGNADO
+  RESERVADO
+  NO_DISPONIBLE
+}
+
+enum EventType {
+  CREACION
+  ACTUALIZACION
+  CAMBIO_ESTADO
+  ASIGNACION
+  DESASIGNACION
+  MANTENIMIENTO
+  CAMBIO_CATEGORIA
+  CAMBIO_UBICACION
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum MaintenanceType {
+  PREVENTIVO
+  CORRECTIVO
+  CALIBRACION
+}
+
+//////////////////////
+// MODELOS
+//////////////////////
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(USER)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  assignments              AssetAssignment[]
+  asignacionesRealizadas   AssetAssignment[] @relation("AsignacionRealizada")
+  logs                     EventLog[]        @relation("UserLogs")
+  requests                 MovementRequest[] @relation("RequestUser")
+  approvals               MovementRequest[] @relation("ApproverUser")
+  maintenancesRealizados  Maintenance[]     @relation("MaintenanceRealizado")
+
+  @@index([role])
+  @@index([deletedAt])
+}
+
+model Category {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  descripcion String?
+
+  parentId Int?
+  parent   Category?  @relation("SubCategory", fields: [parentId], references: [id])
+  children Category[] @relation("SubCategory")
+
+  assets Asset[]
+
+  @@index([parentId])
+}
+
+model Location {
+  id          Int     @id @default(autoincrement())
+  nombre      String  @unique
+  descripcion String?
+
+  parentId Int?
+  parent   Location?  @relation("SubLocation", fields: [parentId], references: [id])
+  children Location[] @relation("SubLocation")
+
+  createdAt DateTime @default(now())
+
+  assets           Asset[]
+  movementRequests MovementRequest[] @relation("MovementDestino")
+
+  @@index([parentId])
+}
+
+model Asset {
+  id Int @id @default(autoincrement())
+
+  nombre           String
+  codigoInventario String  @unique
+  serial           String? @unique
+
+  estadoTecnico EstadoTecnico @default(OPERATIVO)
+  estadoUso     EstadoUso     @default(DISPONIBLE)
+
+  imageUrl String?
+
+  categoryId Int
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  locationId Int
+  location   Location @relation(fields: [locationId], references: [id])
+
+  assignments  AssetAssignment[]
+  logs         EventLog[]
+  requests     MovementRequest[]
+  maintenances Maintenance[]
+  spec         AssetSpec?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@index([estadoTecnico])
+  @@index([estadoUso])
+  @@index([categoryId])
+  @@index([locationId])
+}
+
+model AssetSpec {
+  id      Int @id @default(autoincrement())
+  assetId Int @unique
+
+  marca          String?
+  modelo         String?
+  cpu            String?
+  ram            String?
+  almacenamiento String?
+
+  sistemaOperativo String?
+  versionSO        String?
+
+  ipAddress  String?
+  macAddress String? @unique
+  hostname   String?
+
+  data Json?
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([ipAddress])
+  @@index([hostname])
+}
+
+model AssetAssignment {
+  id Int @id @default(autoincrement())
+
+  userId        Int
+  assetId       Int
+  asignadoPorId Int?
+
+  fechaInicio DateTime @default(now())
+  fechaFin    DateTime?
+
+  user        User  @relation(fields: [userId], references: [id])
+  asset       Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  asignadoPor User? @relation("AsignacionRealizada", fields: [asignadoPorId], references: [id])
+
+  @@index([assetId])
+  @@index([userId])
+  @@index([asignadoPorId])
+}
+
+model EventLog {
+  id          Int       @id @default(autoincrement())
+  tipo        EventType
+  descripcion String
+  fecha       DateTime  @default(now())
+
+  metadata Json?
+
+  assetId Int
+  userId  Int?
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  user  User? @relation("UserLogs", fields: [userId], references: [id])
+
+  @@index([assetId, fecha])
+  @@index([tipo])
+}
+
+model MovementRequest {
+  id Int @id @default(autoincrement())
+
+  assetId         Int
+  requestedById   Int
+  approvedById    Int?
+  nuevaLocationId Int?
+
+  motivo String
+
+  status RequestStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  asset         Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  requestedBy   User      @relation("RequestUser", fields: [requestedById], references: [id])
+  approvedBy    User?     @relation("ApproverUser", fields: [approvedById], references: [id])
+  nuevaLocation Location? @relation("MovementDestino", fields: [nuevaLocationId], references: [id])
+
+  @@index([assetId])
+  @@index([requestedById])
+  @@index([status])
+}
+
+model Maintenance {
+  id Int @id @default(autoincrement())
+
+  assetId        Int
+  tipo           MaintenanceType
+  descripcion    String
+
+  proveedor String?
+  costo     Decimal? @db.Decimal(12, 2)
+
+  fechaInicio DateTime
+  fechaFin    DateTime?
+
+  realizadoPorId Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  asset        Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  realizadoPor User? @relation("MaintenanceRealizado", fields: [realizadoPorId], references: [id])
+
+  @@index([assetId])
+  @@index([fechaInicio])
+  @@index([tipo])
+  @@index([realizadoPorId])
 }
