@@ -8,11 +8,18 @@ export async function GET() {
         asset:        { include: { location: true } },
         requestedBy:  { select: { id: true, name: true, role: true } },
         approvedBy:   { select: { id: true, name: true, role: true } },
-        nuevaLocation: true,
+        destination:  true,
       },
       orderBy: { createdAt: 'desc' },
     })
-    return NextResponse.json(movements)
+    const mappedMovements = movements.map(m => ({
+      ...m,
+      motivo: m.reason,
+      nuevaLocationId: m.destinationId,
+      nuevaLocation: m.destination,
+      asset: m.asset ? { ...m.asset, nombre: m.asset.name, codigoInventario: m.asset.inventoryCode, location: m.asset.location ? { ...m.asset.location, nombre: m.asset.location.name } : null } : null
+    }));
+    return NextResponse.json(mappedMovements)
   } catch (error) {
     console.error('[GET /api/movements all]', error)
     return NextResponse.json({ error: 'Error' }, { status: 500 })

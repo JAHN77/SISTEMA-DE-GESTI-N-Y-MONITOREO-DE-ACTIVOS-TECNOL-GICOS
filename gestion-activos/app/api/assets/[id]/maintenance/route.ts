@@ -25,20 +25,17 @@ export async function POST(req: NextRequest, { params }: Params) {
         fechaFin:      fechaFin ? new Date(fechaFin) : null,
         realizadoPorId: realizadoPorId ? parseInt(realizadoPorId) : null,
       },
-      include: { realizadoPor: true },
-    })
 
-    // EventLog: MANTENIMIENTO — always log (AGENTS.md rule)
+
+// EventLog: MAINTENANCE — always log (AGENTS.md rule)
     await prisma.eventLog.create({
       data: {
-        tipo: 'MANTENIMIENTO',
-        descripcion: `Registro de mantenimiento ${tipo} creado: ${descripcion}`,
+        type: 'MAINTENANCE',
+        description: `Mantenimiento ${tipo} creado para el activo: ${descripcion}`,
         assetId,
         userId: realizadoPorId ? parseInt(realizadoPorId) : null,
       },
-    })
-
-    return NextResponse.json(maintenance, { status: 201 })
+    });
   } catch (error) {
     console.error('[POST /api/assets/:id/maintenance]', error)
     return NextResponse.json({ error: 'Error al crear mantenimiento' }, { status: 500 })

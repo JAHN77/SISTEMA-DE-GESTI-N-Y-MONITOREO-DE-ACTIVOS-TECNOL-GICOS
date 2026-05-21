@@ -7,11 +7,11 @@ const ASSET_INCLUDE = {
   category: true,
   location: true,
   spec: true,
-  assignments: { include: { user: true, asignadoPor: true }, orderBy: { fechaInicio: 'desc' as const } },
-  maintenances: { include: { realizadoPor: true }, orderBy: { fechaInicio: 'desc' as const } },
-  logs: { include: { user: true }, orderBy: { fecha: 'desc' as const } },
+  assignments: { include: { user: true, assignedBy: true }, orderBy: { startDate: 'desc' as const } },
+  maintenances: { include: { handledBy: true }, orderBy: { scheduledAt: 'desc' as const } },
+  logs: { include: { user: true }, orderBy: { occurredAt: 'desc' as const } },
   requests: {
-    include: { requestedBy: true, approvedBy: true, nuevaLocation: true },
+    include: { requestedBy: true, approvedBy: true, destination: true },
     orderBy: { createdAt: 'desc' as const },
   },
 }
@@ -22,14 +22,29 @@ export async function GET(_req: NextRequest, { params }: Params) {
     const asset = await prisma.asset.findUnique({
       where: { id: parseInt(id), deletedAt: null },
       include: ASSET_INCLUDE,
-    })
+    }) as any
     if (!asset) return NextResponse.json({ error: 'Activo no encontrado' }, { status: 404 })
-    return NextResponse.json(asset)
+
+    const mappedAsset = {
+  ...asset,
+  nombre: asset.name,
+  codigoInventario: asset.inventoryCode,
+  serial: asset.serialNumber,
+  estadoTecnico: asset.technicalStatus,
+  estadoUso: asset.usageStatus,
+  category: asset.category ? { ...asset.category, nombre: asset.category.name, descripcion: asset.category.description } : null,
+  location: asset.location ? { ...asset.location, nombre: asset.location.name, descripcion: asset.location.description } : null,
+};
+
+    return NextResponse.json(mappedAsset)
   } catch (error) {
     console.error('[GET /api/assets/:id]', error)
     return NextResponse.json({ error: 'Error al obtener activo' }, { status: 500 })
   }
 }
+
+const statusMap: Record<string, any> = { 'OPERATIVO': 'OPERATIONAL', 'EN_MANTENIMIENTO': 'UNDER_MAINTENANCE', 'EN_REPARACION': 'UNDER_REPAIR', 'DANADO': 'DAMAGED', 'FUERA_DE_SERVICIO': 'OUT_OF_SERVICE', 'DE_BAJA': 'DECOMMISSIONED' };
+const usageMap: Record<string, any> = { 'DISPONIBLE': 'AVAILABLE', 'ASIGNADO': 'ASSIGNED', 'RESERVADO': 'RESERVED', 'NO_DISPONIBLE': 'UNAVAILABLE' };
 
 export async function PATCH(req: NextRequest, { params }: Params) {
   const { id } = await params
@@ -40,16 +55,19 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const existing = await prisma.asset.findUnique({ where: { id: parseInt(id), deletedAt: null } })
     if (!existing) return NextResponse.json({ error: 'Activo no encontrado' }, { status: 404 })
 
+    const newTechStatus = estadoTecnico ? statusMap[estadoTecnico] : undefined;
+    const newUsageStatus = estadoUso ? usageMap[estadoUso] : undefined;
+
     // Detect state change for EventLog
-    const stateChanged = estadoTecnico && estadoTecnico !== existing.estadoTecnico
+    const stateChanged = newTechStatus && newTechStatus !== existing.technicalStatus
 
     const asset = await prisma.asset.update({
       where: { id: parseInt(id) },
       data: {
-        ...(nombre        && { nombre }),
-        ...(serial        !== undefined && { serial }),
-        ...(estadoTecnico && { estadoTecnico }),
-        ...(estadoUso     && { estadoUso }),
+        ...(nombre        && { name: nombre }),
+        ...(serial        !== undefined && { serialNumber: serial }),
+        ...(newTechStatus && { technicalStatus: newTechStatus }),
+        ...(newUsageStatus && { usageStatus: newUsageStatus }),
         ...(imageUrl      !== undefined && { imageUrl }),
         ...(categoryId    && { categoryId: parseInt(categoryId) }),
         ...(locationId    && { locationId: parseInt(locationId) }),
@@ -59,10 +77,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         logs: {
           create: [
             {
-              tipo: stateChanged ? 'CAMBIO_ESTADO' : 'ACTUALIZACION',
-              descripcion: stateChanged
-                ? `Estado técnico cambiado de ${existing.estadoTecnico} a ${estadoTecnico}.`
-                : `Activo "${existing.nombre}" actualizado.`,
+              type: stateChanged ? 'STATUS_CHANGED' : 'UPDATED',
+              description: stateChanged
+                ? `Estado técnico cambiado a ${estadoTecnico}.`
+                : `Activo actualizado.`,
               ...(userId && { userId: parseInt(userId) }),
             },
           ],
@@ -71,7 +89,16 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       include: ASSET_INCLUDE,
     })
 
-    return NextResponse.json(asset)
+    const mappedAsset = {
+      ...asset,
+      nombre: asset.name,
+      codigoInventario: asset.inventoryCode,
+      serial: asset.serialNumber,
+      estadoTecnico: asset.technicalStatus,
+      estadoUso: asset.usageStatus,
+    };
+
+    return NextResponse.json(mappedAsset)
   } catch (error: any) {
     console.error('[PATCH /api/assets/:id]', error)
     if (error.code === 'P2002') {
@@ -94,8 +121,8 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
         deletedAt: new Date(),
         logs: {
           create: {
-            tipo: 'CAMBIO_ESTADO',
-            descripcion: `Activo "${existing.nombre}" marcado como eliminado (soft delete).`,
+            type: 'STATUS_CHANGED',
+            description: `Activo "${existing.name}" marcado como eliminado (soft delete).`,
           },
         },
       },

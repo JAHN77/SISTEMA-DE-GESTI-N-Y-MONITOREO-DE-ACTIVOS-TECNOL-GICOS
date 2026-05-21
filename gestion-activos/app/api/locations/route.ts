@@ -5,9 +5,10 @@ export async function GET() {
   try {
     const locations = await prisma.location.findMany({
       include: { children: true },
-      orderBy: { nombre: 'asc' },
+      orderBy: { name: 'asc' },
     })
-    return NextResponse.json(locations)
+    const mapped = locations.map(l => ({ ...l, nombre: l.name }));
+    return NextResponse.json(mapped)
   } catch (error) {
     return NextResponse.json({ error: 'Error al obtener ubicaciones' }, { status: 500 })
   }

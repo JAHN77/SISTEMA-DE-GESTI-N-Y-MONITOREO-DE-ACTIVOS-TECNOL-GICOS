@@ -1,43 +1,50 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import type { EstadoTecnico, EstadoUso } from '@prisma/client'
 
 export async function GET() {
   try {
     const [
-      totalAssets,
-      operative,
-      enMantenimiento,
-      enReparacion,
-      danado,
-      fueraDeServicio,
-      deBaja,
-      disponible,
-      asignado,
-      reservado,
-      noDisponible,
+      techStats,
+      usageStats,
       recentLogs,
     ] = await Promise.all([
-      prisma.asset.count({ where: { deletedAt: null } }),
-      prisma.asset.count({ where: { deletedAt: null, estadoTecnico: 'OPERATIVO' } }),
-      prisma.asset.count({ where: { deletedAt: null, estadoTecnico: 'EN_MANTENIMIENTO' } }),
-      prisma.asset.count({ where: { deletedAt: null, estadoTecnico: 'EN_REPARACION' } }),
-      prisma.asset.count({ where: { deletedAt: null, estadoTecnico: 'DANADO' } }),
-      prisma.asset.count({ where: { deletedAt: null, estadoTecnico: 'FUERA_DE_SERVICIO' } }),
-      prisma.asset.count({ where: { deletedAt: null, estadoTecnico: 'DE_BAJA' } }),
-      prisma.asset.count({ where: { deletedAt: null, estadoUso: 'DISPONIBLE' } }),
-      prisma.asset.count({ where: { deletedAt: null, estadoUso: 'ASIGNADO' } }),
-      prisma.asset.count({ where: { deletedAt: null, estadoUso: 'RESERVADO' } }),
-      prisma.asset.count({ where: { deletedAt: null, estadoUso: 'NO_DISPONIBLE' } }),
+      prisma.asset.groupBy({ by: ['technicalStatus'], where: { deletedAt: null }, _count: { _all: true } }),
+      prisma.asset.groupBy({ by: ['usageStatus'], where: { deletedAt: null }, _count: { _all: true } }),
       prisma.eventLog.findMany({
         take: 10,
-        orderBy: { fecha: 'desc' },
+        orderBy: { occurredAt: 'desc' },
         include: {
-          asset: { select: { id: true, nombre: true, codigoInventario: true } },
+          asset: { select: { id: true, name: true, inventoryCode: true } },
           user:  { select: { id: true, name: true, role: true } },
         },
       }),
     ])
+
+    // Convert groupBy results to mapped dictionaries
+    const techCount = (status: string) => techStats.find(s => s.technicalStatus === status)?._count._all || 0;
+    const usageCount = (status: string) => usageStats.find(s => s.usageStatus === status)?._count._all || 0;
+
+    const totalAssets = techStats.reduce((sum, s) => sum + s._count._all, 0);
+    const operative = techCount('OPERATIONAL');
+    const enMantenimiento = techCount('UNDER_MAINTENANCE');
+    const enReparacion = techCount('UNDER_REPAIR');
+    const danado = techCount('DAMAGED');
+    const fueraDeServicio = techCount('OUT_OF_SERVICE');
+    const deBaja = techCount('DECOMMISSIONED');
+
+    const disponible = usageCount('AVAILABLE');
+    const asignado = usageCount('ASSIGNED');
+    const reservado = usageCount('RESERVED');
+    const noDisponible = usageCount('UNAVAILABLE');
+
+    // Map new logs to old format expected by frontend
+    const mappedLogs = recentLogs.map((log: any) => ({
+      ...log,
+      tipo: log.type,
+      descripcion: log.description,
+      fecha: log.occurredAt,
+      asset: log.asset ? { ...log.asset, nombre: log.asset.name, codigoInventario: log.asset.inventoryCode } : null
+    }));
 
     return NextResponse.json({
       totalAssets,
@@ -58,7 +65,7 @@ export async function GET() {
         RESERVADO: reservado,
         NO_DISPONIBLE: noDisponible,
       },
-      recentLogs,
+      recentLogs: mappedLogs,
     })
   } catch (error) {
     console.error('[GET /api/dashboard]', error)

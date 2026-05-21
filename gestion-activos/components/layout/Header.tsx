@@ -21,14 +21,22 @@ export default function Header({ onToggleSidebar, role, userName, pendingMovemen
 
   return (
     <header className="app-header">
-      {/* Sidebar toggle */}
-      <button className="header-toggle-btn" onClick={onToggleSidebar} title="Toggle sidebar">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <rect y="2" width="16" height="2" rx="1" fill="currentColor"/>
-          <rect y="7" width="16" height="2" rx="1" fill="currentColor"/>
-          <rect y="12" width="16" height="2" rx="1" fill="currentColor"/>
-        </svg>
-      </button>
+      {/* Left section: Toggle & Breadcrumbs */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <button className="header-toggle-btn" onClick={onToggleSidebar} title="Toggle sidebar">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <rect y="2" width="16" height="2" rx="1" fill="currentColor"/>
+            <rect y="7" width="16" height="2" rx="1" fill="currentColor"/>
+            <rect y="12" width="16" height="2" rx="1" fill="currentColor"/>
+          </svg>
+        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: 'var(--color-text-secondary)' }}>
+          <span style={{ color: 'var(--color-text-primary)', fontWeight: 500 }}>ITAM</span>
+          <span>/</span>
+          <span>Dashboard</span>
+        </div>
+      </div>
+
 
       {/* Global search */}
       <div className="header-search">
@@ -50,6 +58,26 @@ export default function Header({ onToggleSidebar, role, userName, pendingMovemen
       <div className="header-spacer" />
 
       <div className="header-actions">
+        {/* Quick actions */}
+        <button style={{ 
+          background: 'var(--color-primary)', 
+          color: 'white', 
+          border: 'none', 
+          padding: '6px 12px', 
+          borderRadius: '6px', 
+          fontSize: '13px', 
+          fontWeight: 500, 
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px'
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Nuevo
+        </button>
+
+        <div style={{ width: '1px', height: '24px', background: 'var(--color-border)', margin: '0 8px' }} />
+
         {/* Notifications */}
         <button className="header-icon-btn" title="Movimientos pendientes">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">

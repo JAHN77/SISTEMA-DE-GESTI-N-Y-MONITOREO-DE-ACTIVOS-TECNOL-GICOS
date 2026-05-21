@@ -7,6 +7,9 @@ const ASSET_INCLUDE = {
   spec: true,
 } as const
 
+const statusMap: Record<string, any> = { 'OPERATIVO': 'OPERATIONAL', 'EN_MANTENIMIENTO': 'UNDER_MAINTENANCE', 'EN_REPARACION': 'UNDER_REPAIR', 'DANADO': 'DAMAGED', 'FUERA_DE_SERVICIO': 'OUT_OF_SERVICE', 'DE_BAJA': 'DECOMMISSIONED' };
+const usageMap: Record<string, any> = { 'DISPONIBLE': 'AVAILABLE', 'ASIGNADO': 'ASSIGNED', 'RESERVADO': 'RESERVED', 'NO_DISPONIBLE': 'UNAVAILABLE' };
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = req.nextUrl
@@ -20,19 +23,25 @@ export async function GET(req: NextRequest) {
     const sortBy        = searchParams.get('sortBy') ?? 'createdAt'
     const sortOrder     = (searchParams.get('sortOrder') ?? 'desc') as 'asc' | 'desc'
 
-    const where: Parameters<typeof prisma.asset.findMany>[0]['where'] = {
-      deletedAt: null,
-      ...(search && {
-        OR: [
-          { nombre:            { contains: search, mode: 'insensitive' } },
-          { codigoInventario:  { contains: search, mode: 'insensitive' } },
-          { serial:            { contains: search, mode: 'insensitive' } },
-        ],
-      }),
-      ...(categoryId && { categoryId: parseInt(categoryId) }),
-      ...(locationId && { locationId: parseInt(locationId) }),
-      ...(estadoTecnico.length > 0 && { estadoTecnico: { in: estadoTecnico as any[] } }),
-      ...(estadoUso.length   > 0 && { estadoUso:     { in: estadoUso     as any[] } }),
+    const where: any = {
+  deletedAt: null,
+  ...(search && {
+    OR: [
+      { name: { contains: search, mode: 'insensitive' } },
+      { inventoryCode: { contains: search, mode: 'insensitive' } },
+      { serialNumber: { contains: search, mode: 'insensitive' } },
+    ],
+  }),
+  ...(categoryId && { categoryId: parseInt(categoryId) }),
+  ...(locationId && { locationId: parseInt(locationId) }),
+};
+
+
+    if (estadoTecnico.length > 0) {
+      where.technicalStatus = { in: estadoTecnico.map(s => statusMap[s] || s) };
+    }
+    if (estadoUso.length > 0) {
+      where.usageStatus = { in: estadoUso.map(s => usageMap[s] || s) };
     }
 
     const [data, total] = await Promise.all([
@@ -46,8 +55,19 @@ export async function GET(req: NextRequest) {
       prisma.asset.count({ where }),
     ])
 
+    const mappedData = data.map(asset => ({
+      ...asset,
+      nombre: asset.name,
+      codigoInventario: asset.inventoryCode,
+      serial: asset.serialNumber,
+      estadoTecnico: asset.technicalStatus,
+      estadoUso: asset.usageStatus,
+      category: asset.category ? { ...asset.category, nombre: asset.category.name, descripcion: asset.category.description } : null,
+      location: asset.location ? { ...asset.location, nombre: asset.location.name, descripcion: asset.location.description } : null,
+    }));
+
     return NextResponse.json({
-      data,
+      data: mappedData,
       total,
       page,
       pageSize,
@@ -75,11 +95,11 @@ export async function POST(req: NextRequest) {
 
     const asset = await prisma.asset.create({
       data: {
-        nombre,
-        codigoInventario,
-        serial:       serial       ?? null,
-        estadoTecnico: estadoTecnico ?? 'OPERATIVO',
-        estadoUso:     estadoUso    ?? 'DISPONIBLE',
+        name: nombre,
+        inventoryCode: codigoInventario,
+        serialNumber:       serial       ?? null,
+        technicalStatus: (estadoTecnico ? statusMap[estadoTecnico] : null) ?? 'OPERATIONAL',
+        usageStatus:     (estadoUso ? usageMap[estadoUso] : null) ?? 'AVAILABLE',
         imageUrl:     imageUrl     ?? null,
         categoryId:   parseInt(categoryId),
         locationId:   parseInt(locationId),
@@ -88,15 +108,24 @@ export async function POST(req: NextRequest) {
         }),
         logs: {
           create: {
-            tipo: 'CREACION',
-            descripcion: `Activo "${nombre}" creado en el sistema.`,
+            type: 'CREATED',
+            description: `Activo "${nombre}" creado en el sistema.`,
           },
         },
       },
       include: ASSET_INCLUDE,
     })
 
-    return NextResponse.json(asset, { status: 201 })
+    const mappedAsset = {
+      ...asset,
+      nombre: asset.name,
+      codigoInventario: asset.inventoryCode,
+      serial: asset.serialNumber,
+      estadoTecnico: asset.technicalStatus,
+      estadoUso: asset.usageStatus,
+    };
+
+    return NextResponse.json(mappedAsset, { status: 201 })
   } catch (error: any) {
     console.error('[POST /api/assets]', error)
     if (error.code === 'P2002') {

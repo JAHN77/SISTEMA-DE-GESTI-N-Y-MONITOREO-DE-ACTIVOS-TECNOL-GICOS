@@ -10,16 +10,24 @@ export async function GET(req: NextRequest) {
     const logs = await prisma.eventLog.findMany({
       where: {
         ...(assetId && { assetId: parseInt(assetId) }),
-        ...(tipo && { tipo: tipo as any }),
       },
       include: {
-        asset: { select: { id: true, nombre: true, codigoInventario: true } },
+        asset: { select: { id: true, name: true, inventoryCode: true } },
         user:  { select: { id: true, name: true, role: true } },
       },
-      orderBy: { fecha: 'desc' },
+      orderBy: { occurredAt: 'desc' },
       take: 200,
     })
-    return NextResponse.json(logs)
+    
+    const mappedLogs = logs.map(l => ({
+      ...l,
+      tipo: l.type,
+      descripcion: l.description,
+      fecha: l.occurredAt,
+      asset: l.asset ? { ...l.asset, nombre: l.asset.name, codigoInventario: l.asset.inventoryCode } : null
+    }));
+    
+    return NextResponse.json(mappedLogs)
   } catch (error) {
     return NextResponse.json({ error: 'Error al obtener logs' }, { status: 500 })
   }

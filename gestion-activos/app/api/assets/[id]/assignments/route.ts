@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 type Params = { params: Promise<{ id: string }> }
 
 // POST /api/assets/:id/assignments — assign asset to user
-// Business rule: only one active assignment per asset (AssetAssignment with fechaFin IS NULL)
+// Business rule: only one active assignment per asset (AssetAssignment with endDate IS NULL)
 export async function POST(req: NextRequest, { params }: Params) {
   const { id } = await params
   const assetId = parseInt(id)
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     // Enforce: only one active assignment per asset
     const active = await prisma.assetAssignment.findFirst({
-      where: { assetId, fechaFin: null },
+      where: { assetId, endDate: null },
     })
     if (active) {
       return NextResponse.json(
@@ -31,16 +31,16 @@ export async function POST(req: NextRequest, { params }: Params) {
       data: {
         assetId,
         userId: parseInt(userId),
-        asignadoPorId: asignadoPorId ? parseInt(asignadoPorId) : null,
+        createdById: asignadoPorId ? parseInt(asignadoPorId) : null,
       },
-      include: { user: true, asignadoPor: true },
+      include: { user: true, createdBy: true },
     })
 
     // EventLog: ASIGNACION
     await prisma.eventLog.create({
       data: {
-        tipo: 'ASIGNACION',
-        descripcion: `Activo asignado a ${assignment.user.name}.`,
+        type: 'ASSIGNED',
+        description: `Activo asignado a ${assignment.user.name}.`,
         assetId,
         userId: asignadoPorId ? parseInt(asignadoPorId) : null,
       },
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     // Update usage state
     await prisma.asset.update({
       where: { id: assetId },
-      data: { estadoUso: 'ASIGNADO' },
+      data: { usageStatus: 'ASSIGNED' },
     })
 
     return NextResponse.json(assignment, { status: 201 })
@@ -66,7 +66,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   try {
     const active = await prisma.assetAssignment.findFirst({
-      where: { assetId, fechaFin: null },
+      where: { assetId, endDate: null },
     })
     if (!active) {
       return NextResponse.json({ error: 'No hay asignación activa para este activo' }, { status: 404 })
@@ -74,15 +74,15 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     const updated = await prisma.assetAssignment.update({
       where: { id: active.id },
-      data: { fechaFin: new Date() },
+      data: { endDate: new Date() },
       include: { user: true },
     })
 
     // EventLog: DESASIGNACION
     await prisma.eventLog.create({
       data: {
-        tipo: 'DESASIGNACION',
-        descripcion: `Asignación de ${updated.user.name} finalizada.`,
+        type: 'UNASSIGNED',
+        description: `Asignación de ${updated.user.name} finalizada.`,
         assetId,
       },
     })
@@ -90,7 +90,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     // Update usage state back to DISPONIBLE
     await prisma.asset.update({
       where: { id: assetId },
-      data: { estadoUso: 'DISPONIBLE' },
+      data: { usageStatus: 'AVAILABLE' },
     })
 
     return NextResponse.json(updated)
