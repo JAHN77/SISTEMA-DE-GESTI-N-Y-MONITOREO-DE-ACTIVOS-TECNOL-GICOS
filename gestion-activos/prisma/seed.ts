@@ -1,17 +1,18 @@
 import { Role, TechnicalStatus, UsageStatus, LocationType, EventType } from '@prisma/client';
 import { prisma } from '../lib/prisma';
+import { hashPassword } from '../lib/password';
 
 async function main() {
   console.log('🌱 Iniciando seed de la base de datos...');
 
-  // 1. Usuarios
+  // 1. Usuarios — contraseñas hasheadas con PBKDF2-SHA512
   const admin = await prisma.user.upsert({
     where: { email: 'admin@itam.local' },
-    update: {},
+    update: { password: hashPassword('Admin123!') },
     create: {
       name: 'Admin Principal',
       email: 'admin@itam.local',
-      password: 'hashedpassword', // En un entorno real debe ir hasheado
+      password: hashPassword('Admin123!'),
       role: Role.SUPER_ADMIN,
       department: 'IT',
     },
@@ -19,11 +20,11 @@ async function main() {
 
   const tech = await prisma.user.upsert({
     where: { email: 'tech@itam.local' },
-    update: {},
+    update: { password: hashPassword('Tech123!') },
     create: {
       name: 'Técnico Soporte',
       email: 'tech@itam.local',
-      password: 'hashedpassword',
+      password: hashPassword('Tech123!'),
       role: Role.TECHNICIAN,
       department: 'Soporte',
     },
@@ -31,11 +32,11 @@ async function main() {
 
   const user = await prisma.user.upsert({
     where: { email: 'user@itam.local' },
-    update: {},
+    update: { password: hashPassword('User123!') },
     create: {
       name: 'Usuario Regular',
       email: 'user@itam.local',
-      password: 'hashedpassword',
+      password: hashPassword('User123!'),
       role: Role.USER,
       department: 'Ventas',
     },

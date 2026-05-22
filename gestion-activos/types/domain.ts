@@ -1,7 +1,10 @@
 // Central TypeScript types derived from the Prisma schema
 // AGENTS.md: Do NOT modify domain types or bypass business rules
 
-export type Role = 'ADMIN' | 'TECHNICIAN' | 'USER'
+// Must match the Role enum in prisma/schema.prisma exactly
+export type Role = 'SUPER_ADMIN' | 'ADMIN' | 'TECHNICIAN' | 'USER' | 'AUDITOR'
+
+// ─── Enums ────────────────────────────────────────────────
 
 export type EstadoTecnico =
   | 'OPERATIVO'
@@ -10,12 +13,15 @@ export type EstadoTecnico =
   | 'EN_REPARACION'
   | 'FUERA_DE_SERVICIO'
   | 'DE_BAJA'
+  | 'EN_TRANSITO'
+  | 'REACTIVADO'
 
 export type EstadoUso =
   | 'DISPONIBLE'
   | 'ASIGNADO'
   | 'RESERVADO'
   | 'NO_DISPONIBLE'
+  | 'PRESTADO'
 
 export type EventType =
   | 'CREACION'
@@ -26,10 +32,19 @@ export type EventType =
   | 'MANTENIMIENTO'
   | 'CAMBIO_CATEGORIA'
   | 'CAMBIO_UBICACION'
+  | 'DESBILITADO'
+  | 'REACTIVADO'
+  | 'PRESTAMO'
+  | 'DEVOLUCION'
 
-export type RequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+export type MaintenanceType =
+  | 'PREVENTIVO'
+  | 'CORRECTIVO'
+  | 'CALIBRACION'
+  | 'ACTUALIZACION'
+  | 'LIMPIEZA'
 
-export type MaintenanceType = 'PREVENTIVO' | 'CORRECTIVO' | 'CALIBRACION'
+export type RequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'IN_PROGRESS' | 'COMPLETED'
 
 // ─── Domain Entities ────────────────────────────────────
 
@@ -153,12 +168,32 @@ export interface Maintenance {
 
 export interface DashboardStats {
   totalAssets: number
-  operative: number
+  operativo: number
+  enMantenimiento: number
+  enReparacion: number
+  danado: number
+  fueraDeServicio: number
+  deBaja: number
+  enTransito: number
+  disponible: number
+  asignado: number
+  reservado: number
+  noDisponible: number
+  prestado: number
   inMaintenance: number
   damaged: number
   byTechnicalState: Record<EstadoTecnico, number>
   byUsageState: Record<EstadoUso, number>
   recentLogs: EventLog[]
+}
+
+// ─── Auth ────────────────────────────────────────────────
+
+export interface AuthSession {
+  id: number
+  name: string
+  email: string
+  role: Role
 }
 
 // ─── API Response Shapes ────────────────────────────────

@@ -12,13 +12,13 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard',     href: '/dashboard',    icon: '◼',  roles: ['ADMIN', 'TECHNICIAN', 'USER'] },
-  { label: 'Activos',       href: '/assets',       icon: '📦', roles: ['ADMIN', 'TECHNICIAN', 'USER'] },
-  { label: 'Movimientos',   href: '/movements',    icon: '🚚', roles: ['ADMIN', 'TECHNICIAN', 'USER'] },
-  { label: 'Mantenimiento', href: '/maintenance',  icon: '🔧', roles: ['ADMIN', 'TECHNICIAN'] },
-  { label: 'Bitácora',      href: '/logs',         icon: '📋', roles: ['ADMIN', 'TECHNICIAN'] },
-  { label: 'Usuarios',      href: '/users',        icon: '👥', roles: ['ADMIN'] },
-  { label: 'Configuración', href: '/settings',     icon: '⚙️', roles: ['ADMIN'] },
+  { label: 'Dashboard',     href: '/dashboard',    icon: '◼',  roles: ['SUPER_ADMIN', 'ADMIN', 'TECHNICIAN', 'USER', 'AUDITOR'] },
+  { label: 'Activos',       href: '/assets',       icon: '📦', roles: ['SUPER_ADMIN', 'ADMIN', 'TECHNICIAN', 'USER', 'AUDITOR'] },
+  { label: 'Movimientos',   href: '/movements',    icon: '🚚', roles: ['SUPER_ADMIN', 'ADMIN', 'TECHNICIAN', 'USER'] },
+  { label: 'Mantenimiento', href: '/maintenance',  icon: '🔧', roles: ['SUPER_ADMIN', 'ADMIN', 'TECHNICIAN'] },
+  { label: 'Bitácora',      href: '/logs',         icon: '📋', roles: ['SUPER_ADMIN', 'ADMIN', 'TECHNICIAN', 'AUDITOR'] },
+  { label: 'Usuarios',      href: '/users',        icon: '👥', roles: ['SUPER_ADMIN', 'ADMIN'] },
+  { label: 'Configuración', href: '/settings',     icon: '⚙️', roles: ['SUPER_ADMIN', 'ADMIN'] },
 ]
 
 interface SidebarProps {

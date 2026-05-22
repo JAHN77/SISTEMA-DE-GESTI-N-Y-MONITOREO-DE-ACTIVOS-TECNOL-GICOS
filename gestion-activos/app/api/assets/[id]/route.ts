@@ -7,13 +7,64 @@ const ASSET_INCLUDE = {
   category: true,
   location: true,
   spec: true,
-  assignments: { include: { user: true, assignedBy: true }, orderBy: { startDate: 'desc' as const } },
+  assignments: { include: { user: true, createdBy: true }, orderBy: { startDate: 'desc' as const } },
   maintenances: { include: { handledBy: true }, orderBy: { scheduledAt: 'desc' as const } },
   logs: { include: { user: true }, orderBy: { occurredAt: 'desc' as const } },
   requests: {
     include: { requestedBy: true, approvedBy: true, destination: true },
     orderBy: { createdAt: 'desc' as const },
   },
+}
+
+// DB → Spanish translations
+const techStatusES: Record<string, string> = {
+  OPERATIONAL:       'OPERATIVO',
+  DAMAGED:           'DANADO',
+  UNDER_MAINTENANCE: 'EN_MANTENIMIENTO',
+  UNDER_REPAIR:      'EN_REPARACION',
+  OUT_OF_SERVICE:    'FUERA_DE_SERVICIO',
+  DECOMMISSIONED:    'DE_BAJA',
+  IN_TRANSIT:        'EN_TRANSITO',
+  REACTIVATED:       'REACTIVADO',
+}
+const usageStatusES: Record<string, string> = {
+  AVAILABLE:   'DISPONIBLE',
+  ASSIGNED:    'ASIGNADO',
+  RESERVED:    'RESERVADO',
+  UNAVAILABLE: 'NO_DISPONIBLE',
+  ON_LOAN:     'PRESTADO',
+}
+const eventTypeES: Record<string, string> = {
+  CREATED:          'CREACION',
+  UPDATED:          'ACTUALIZACION',
+  STATUS_CHANGED:   'CAMBIO_ESTADO',
+  ASSIGNED:         'ASIGNACION',
+  UNASSIGNED:       'DESASIGNACION',
+  MAINTENANCE:      'MANTENIMIENTO',
+  CATEGORY_CHANGED: 'CAMBIO_CATEGORIA',
+  LOCATION_CHANGED: 'CAMBIO_UBICACION',
+  DECOMMISSIONED:   'DESBILITADO',
+  REACTIVATED:      'REACTIVADO',
+  LOANED:           'PRESTAMO',
+  RETURNED:         'DEVOLUCION',
+}
+// Spanish → DB (for write operations)
+const statusMap: Record<string, string> = {
+  OPERATIVO:        'OPERATIONAL',
+  EN_MANTENIMIENTO: 'UNDER_MAINTENANCE',
+  EN_REPARACION:    'UNDER_REPAIR',
+  DANADO:           'DAMAGED',
+  FUERA_DE_SERVICIO:'OUT_OF_SERVICE',
+  DE_BAJA:          'DECOMMISSIONED',
+  EN_TRANSITO:      'IN_TRANSIT',
+  REACTIVADO:       'REACTIVATED',
+}
+const usageMap: Record<string, string> = {
+  DISPONIBLE:    'AVAILABLE',
+  ASIGNADO:      'ASSIGNED',
+  RESERVADO:     'RESERVED',
+  NO_DISPONIBLE: 'UNAVAILABLE',
+  PRESTADO:      'ON_LOAN',
 }
 
 export async function GET(_req: NextRequest, { params }: Params) {
@@ -26,15 +77,25 @@ export async function GET(_req: NextRequest, { params }: Params) {
     if (!asset) return NextResponse.json({ error: 'Activo no encontrado' }, { status: 404 })
 
     const mappedAsset = {
-  ...asset,
-  nombre: asset.name,
-  codigoInventario: asset.inventoryCode,
-  serial: asset.serialNumber,
-  estadoTecnico: asset.technicalStatus,
-  estadoUso: asset.usageStatus,
-  category: asset.category ? { ...asset.category, nombre: asset.category.name, descripcion: asset.category.description } : null,
-  location: asset.location ? { ...asset.location, nombre: asset.location.name, descripcion: asset.location.description } : null,
-};
+      ...asset,
+      nombre: asset.name,
+      codigoInventario: asset.inventoryCode,
+      serial: asset.serialNumber,
+      estadoTecnico: techStatusES[asset.technicalStatus] ?? asset.technicalStatus,
+      estadoUso: usageStatusES[asset.usageStatus] ?? asset.usageStatus,
+      category: asset.category
+        ? { ...asset.category, nombre: asset.category.name, descripcion: asset.category.description }
+        : null,
+      location: asset.location
+        ? { ...asset.location, nombre: asset.location.name, descripcion: asset.location.description }
+        : null,
+      logs: asset.logs?.map((l: any) => ({
+        ...l,
+        tipo: eventTypeES[l.type] ?? l.type,
+        fecha: l.occurredAt,
+        descripcion: l.description,
+      })),
+    }
 
     return NextResponse.json(mappedAsset)
   } catch (error) {
@@ -42,9 +103,6 @@ export async function GET(_req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'Error al obtener activo' }, { status: 500 })
   }
 }
-
-const statusMap: Record<string, any> = { 'OPERATIVO': 'OPERATIONAL', 'EN_MANTENIMIENTO': 'UNDER_MAINTENANCE', 'EN_REPARACION': 'UNDER_REPAIR', 'DANADO': 'DAMAGED', 'FUERA_DE_SERVICIO': 'OUT_OF_SERVICE', 'DE_BAJA': 'DECOMMISSIONED' };
-const usageMap: Record<string, any> = { 'DISPONIBLE': 'AVAILABLE', 'ASIGNADO': 'ASSIGNED', 'RESERVADO': 'RESERVED', 'NO_DISPONIBLE': 'UNAVAILABLE' };
 
 export async function PATCH(req: NextRequest, { params }: Params) {
   const { id } = await params
@@ -94,9 +152,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       nombre: asset.name,
       codigoInventario: asset.inventoryCode,
       serial: asset.serialNumber,
-      estadoTecnico: asset.technicalStatus,
-      estadoUso: asset.usageStatus,
-    };
+      estadoTecnico: techStatusES[asset.technicalStatus] ?? asset.technicalStatus,
+      estadoUso: usageStatusES[asset.usageStatus] ?? asset.usageStatus,
+    }
 
     return NextResponse.json(mappedAsset)
   } catch (error: any) {

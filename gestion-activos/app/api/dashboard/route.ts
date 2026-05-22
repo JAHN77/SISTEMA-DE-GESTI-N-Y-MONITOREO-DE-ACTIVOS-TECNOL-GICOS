@@ -1,6 +1,21 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+const eventTypeES: Record<string, string> = {
+  CREATED:          'CREACION',
+  UPDATED:          'ACTUALIZACION',
+  STATUS_CHANGED:   'CAMBIO_ESTADO',
+  ASSIGNED:         'ASIGNACION',
+  UNASSIGNED:       'DESASIGNACION',
+  MAINTENANCE:      'MANTENIMIENTO',
+  CATEGORY_CHANGED: 'CAMBIO_CATEGORIA',
+  LOCATION_CHANGED: 'CAMBIO_UBICACION',
+  DECOMMISSIONED:   'DESBILITADO',
+  REACTIVATED:      'REACTIVADO',
+  LOANED:           'PRESTAMO',
+  RETURNED:         'DEVOLUCION',
+}
+
 export async function GET() {
   try {
     const [
@@ -25,45 +40,61 @@ export async function GET() {
     const usageCount = (status: string) => usageStats.find(s => s.usageStatus === status)?._count._all || 0;
 
     const totalAssets = techStats.reduce((sum, s) => sum + s._count._all, 0);
-    const operative = techCount('OPERATIONAL');
+    const operativo = techCount('OPERATIONAL');
     const enMantenimiento = techCount('UNDER_MAINTENANCE');
     const enReparacion = techCount('UNDER_REPAIR');
     const danado = techCount('DAMAGED');
     const fueraDeServicio = techCount('OUT_OF_SERVICE');
     const deBaja = techCount('DECOMMISSIONED');
+    const enTransito = techCount('IN_TRANSIT');
 
     const disponible = usageCount('AVAILABLE');
     const asignado = usageCount('ASSIGNED');
     const reservado = usageCount('RESERVED');
     const noDisponible = usageCount('UNAVAILABLE');
+    const prestado = usageCount('ON_LOAN');
 
-    // Map new logs to old format expected by frontend
     const mappedLogs = recentLogs.map((log: any) => ({
       ...log,
-      tipo: log.type,
+      tipo: eventTypeES[log.type] ?? log.type,
       descripcion: log.description,
       fecha: log.occurredAt,
-      asset: log.asset ? { ...log.asset, nombre: log.asset.name, codigoInventario: log.asset.inventoryCode } : null
-    }));
+      asset: log.asset
+        ? { ...log.asset, nombre: log.asset.name, codigoInventario: log.asset.inventoryCode }
+        : null,
+    }))
 
     return NextResponse.json({
       totalAssets,
-      operative,
+      operativo,
+      enMantenimiento,
+      enReparacion,
+      danado,
+      fueraDeServicio,
+      deBaja,
+      enTransito,
+      disponible,
+      asignado,
+      reservado,
+      noDisponible,
+      prestado,
       inMaintenance: enMantenimiento + enReparacion,
       damaged: danado + fueraDeServicio + deBaja,
       byTechnicalState: {
-        OPERATIVO: operative,
+        OPERATIVO: operativo,
         EN_MANTENIMIENTO: enMantenimiento,
         EN_REPARACION: enReparacion,
         DANADO: danado,
         FUERA_DE_SERVICIO: fueraDeServicio,
         DE_BAJA: deBaja,
+        EN_TRANSITO: enTransito,
       },
       byUsageState: {
         DISPONIBLE: disponible,
         ASIGNADO: asignado,
         RESERVADO: reservado,
         NO_DISPONIBLE: noDisponible,
+        PRESTADO: prestado,
       },
       recentLogs: mappedLogs,
     })

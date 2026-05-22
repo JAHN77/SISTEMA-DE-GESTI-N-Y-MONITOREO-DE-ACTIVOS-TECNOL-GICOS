@@ -2,19 +2,21 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
-import type { Asset, EstadoTecnico, EstadoUso, Category, Location, Role } from '@/types/domain'
+import type { Asset, EstadoTecnico, EstadoUso, Category, Location } from '@/types/domain'
 import {
   estadoTecnicoBadge, estadoUsoBadge,
   ESTADO_TECNICO_LABELS, ESTADO_USO_LABELS,
 } from '@/lib/ui-helpers'
 import MovementRequestModal from '@/components/movements/MovementRequestModal'
+import { useAuth } from '@/context/AuthContext'
 
-const ROLE: Role = 'ADMIN' // TODO: from auth session
-
-const ESTADOS_TECNICOS: EstadoTecnico[] = ['OPERATIVO','EN_MANTENIMIENTO','EN_REPARACION','DANADO','FUERA_DE_SERVICIO','DE_BAJA']
-const ESTADOS_USO: EstadoUso[] = ['DISPONIBLE','ASIGNADO','RESERVADO','NO_DISPONIBLE']
+const ESTADOS_TECNICOS: EstadoTecnico[] = ['OPERATIVO','EN_MANTENIMIENTO','EN_REPARACION','DANADO','FUERA_DE_SERVICIO','DE_BAJA','EN_TRANSITO']
+const ESTADOS_USO: EstadoUso[] = ['DISPONIBLE','ASIGNADO','RESERVADO','NO_DISPONIBLE','PRESTADO']
 
 export default function AssetsPage() {
+  const { user } = useAuth()
+  const canEdit  = ['SUPER_ADMIN', 'ADMIN', 'TECHNICIAN'].includes(user.role)
+  const canAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(user.role)
   const [assets, setAssets]   = useState<Asset[]>([])
   const [total, setTotal]     = useState(0)
   const [page, setPage]       = useState(1)
@@ -97,7 +99,7 @@ export default function AssetsPage() {
           <h1 className="page-title">Activos Tecnológicos</h1>
           <p className="page-subtitle">{total} activos registrados en el sistema</p>
         </div>
-        {['ADMIN','TECHNICIAN'].includes(ROLE) && (
+        {canEdit && (
           <div className="page-header-actions">
             <Link href="/assets/new" className="btn btn-primary">+ Nuevo Activo</Link>
           </div>
@@ -190,7 +192,7 @@ export default function AssetsPage() {
                     <div className="empty-state-icon">📦</div>
                     <div className="empty-state-title">Sin activos</div>
                     <div className="empty-state-desc">No se encontraron activos con los filtros actuales.</div>
-                    {['ADMIN','TECHNICIAN'].includes(ROLE) && (
+                    {canEdit && (
                       <Link href="/assets/new" className="btn btn-primary">+ Crear primer activo</Link>
                     )}
                   </div>
@@ -212,11 +214,11 @@ export default function AssetsPage() {
                 <td>
                   <div className="table-actions" style={{ justifyContent: 'flex-end' }}>
                     <Link href={`/assets/${asset.id}`} className="btn btn-ghost btn-icon btn-sm" title="Ver detalle">👁</Link>
-                    {['ADMIN','TECHNICIAN'].includes(ROLE) && (
+                    {canEdit && (
                       <Link href={`/assets/${asset.id}/edit`} className="btn btn-ghost btn-icon btn-sm" title="Editar">✏️</Link>
                     )}
                     <button className="btn btn-ghost btn-icon btn-sm" title="Solicitar movimiento" onClick={() => setMovementAsset(asset)}>🚚</button>
-                    {ROLE === 'ADMIN' && (
+                    {canAdmin && (
                       <button className="btn btn-ghost btn-icon btn-sm" title="Eliminar" onClick={() => handleDelete(asset)} style={{ color: 'var(--color-danado)' }}>🗑</button>
                     )}
                   </div>

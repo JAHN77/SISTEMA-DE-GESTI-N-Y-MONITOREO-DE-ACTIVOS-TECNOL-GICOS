@@ -10,7 +10,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   const assetId = parseInt(id)
 
   try {
-    const { userId, asignadoPorId } = await req.json()
+    const { userId, asignadoPorId, reason, notes } = await req.json()
 
     if (!userId) {
       return NextResponse.json({ error: 'userId es requerido' }, { status: 400 })
@@ -30,8 +30,10 @@ export async function POST(req: NextRequest, { params }: Params) {
     const assignment = await prisma.assetAssignment.create({
       data: {
         assetId,
-        userId: parseInt(userId),
+        userId:      parseInt(userId),
         createdById: asignadoPorId ? parseInt(asignadoPorId) : null,
+        reason:      reason ?? null,
+        notes:       notes  ?? null,
       },
       include: { user: true, createdBy: true },
     })
@@ -52,7 +54,13 @@ export async function POST(req: NextRequest, { params }: Params) {
       data: { usageStatus: 'ASSIGNED' },
     })
 
-    return NextResponse.json(assignment, { status: 201 })
+    const mappedAssignment = {
+      ...assignment,
+      usuario: assignment.user,
+      asignadoPor: assignment.createdBy,
+    }
+
+    return NextResponse.json(mappedAssignment, { status: 201 })
   } catch (error) {
     console.error('[POST /api/assets/:id/assignments]', error)
     return NextResponse.json({ error: 'Error al asignar activo' }, { status: 500 })
@@ -93,7 +101,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       data: { usageStatus: 'AVAILABLE' },
     })
 
-    return NextResponse.json(updated)
+    const mappedAssignment = {
+      ...updated,
+      usuario: updated.user,
+    }
+
+    return NextResponse.json(mappedAssignment)
   } catch (error) {
     console.error('[PATCH /api/assets/:id/assignments]', error)
     return NextResponse.json({ error: 'Error al finalizar asignación' }, { status: 500 })

@@ -143,7 +143,7 @@ export default function DashboardPage() {
         />
         <MetricCard 
           icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>} 
-          label="Activos Operativos" value={stats.operative} color="var(--color-operativo)" 
+          label="Activos Operativos" value={stats.operativo} color="var(--color-operativo)" 
           trend={{ value: '2.4%', positive: true }} 
         />
         <MetricCard 
@@ -169,10 +169,10 @@ export default function DashboardPage() {
               <div style={{ position: 'relative', width: '160px', height: '160px', flexShrink: 0 }}>
                 <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%' }}>
                   <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--color-bg-overlay)" strokeWidth="4" />
-                  <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--color-operativo)" strokeWidth="4" strokeDasharray={`${stats.totalAssets > 0 ? (stats.operative / stats.totalAssets) * 100 : 0}, 100`} />
-                </svg>
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontSize: '24px', fontWeight: 600, color: 'var(--color-text-primary)' }}>{stats.totalAssets > 0 ? Math.round((stats.operative / stats.totalAssets) * 100) : 0}%</span>
+<path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--color-operativo)" strokeWidth="4" strokeDasharray={`${stats.totalAssets > 0 ? (stats.operativo / stats.totalAssets) * 100 : 0}, 100`} />
+                 </svg>
+                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                   <span style={{ fontSize: '24px', fontWeight: 600, color: 'var(--color-text-primary)' }}>{stats.totalAssets > 0 ? Math.round((stats.operativo / stats.totalAssets) * 100) : 0}%</span>
                   <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Salud</span>
                 </div>
               </div>
@@ -182,9 +182,9 @@ export default function DashboardPage() {
                   const colors: Record<string, string> = {
                     OPERATIVO: 'var(--color-operativo)', EN_MANTENIMIENTO: 'var(--color-mantenimiento)',
                     EN_REPARACION: 'var(--color-reparacion)', DANADO: 'var(--color-danado)',
-                    FUERA_DE_SERVICIO: 'var(--color-fuera)', DE_BAJA: 'var(--color-baja)',
+                    FUERA_DE_SERVICIO: 'var(--color-fuera)', DE_BAJA: 'var(--color-baja)', EN_TRANSITO: 'var(--color-transito)',
                   }
-                  if (count === 0 && estado !== 'OPERATIVO') return null; // Hide empty states for minimal look
+                  if (count === 0 && !['OPERATIVO', 'EN_TRANSITO'].includes(estado)) return null; // Hide empty states for minimal look
                   return (
                     <MiniBar
                       key={estado}

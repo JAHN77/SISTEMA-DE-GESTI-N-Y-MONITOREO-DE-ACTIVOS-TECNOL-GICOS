@@ -2,19 +2,21 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import type { MovementRequest, RequestStatus, Role } from '@/types/domain'
+import type { RequestStatus } from '@/types/domain'
 import { requestStatusBadge, REQUEST_STATUS_LABELS, formatDateTime } from '@/lib/ui-helpers'
 import { useToast } from '@/components/ui/ToastProvider'
-
-const ROLE: Role = 'ADMIN' // TODO: from auth
+import { useAuth } from '@/context/AuthContext'
 
 export default function MovementsPage() {
   const { toast } = useToast()
+  const { user } = useAuth()
   const [movements, setMovements] = useState<any[]>([])
   const [loading, setLoading]     = useState(true)
   const [filterStatus, setFilterStatus] = useState<RequestStatus | ''>('')
   const [selected, setSelected]   = useState<any | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
+
+  const canApprove = ['SUPER_ADMIN', 'ADMIN'].includes(user.role)
 
   async function load() {
     setLoading(true)
@@ -32,7 +34,10 @@ export default function MovementsPage() {
     const res = await fetch(`/api/movements/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, approvedById: 1 }),
+      body: JSON.stringify({
+        accion: action === 'APPROVED' ? 'APROBADO' : 'RECHAZADO',
+        aprobadoPorId: user.id,
+      }),
     })
     const data = await res.json()
     if (!res.ok) { toast('error', 'Error', data.error); setActionLoading(false); return }
@@ -89,7 +94,7 @@ export default function MovementsPage() {
               <th>Solicitante</th>
               <th>Estado</th>
               <th>Fecha</th>
-              {ROLE === 'ADMIN' && <th>Acciones</th>}
+              {canApprove && <th>Acciones</th>}
             </tr>
           </thead>
           <tbody>
@@ -121,7 +126,7 @@ export default function MovementsPage() {
                 <td style={{ color: 'var(--color-text-secondary)' }}>{m.requestedBy?.name}</td>
                 <td><span className={requestStatusBadge(m.status)}>{REQUEST_STATUS_LABELS[m.status as RequestStatus]}</span></td>
                 <td style={{ color: 'var(--color-text-muted)', whiteSpace: 'nowrap', fontSize: 12 }}>{formatDateTime(m.createdAt)}</td>
-                {ROLE === 'ADMIN' && (
+                {canApprove && (
                   <td>
                     {m.status === 'PENDING' && (
                       <div className="table-actions">

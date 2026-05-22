@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useAuth } from '@/context/AuthContext'
 import type { Role } from '@/types/domain'
 
 interface HeaderProps {
@@ -11,13 +12,17 @@ interface HeaderProps {
 }
 
 const ROLE_LABELS: Record<Role, string> = {
-  ADMIN: 'Administrador',
-  TECHNICIAN: 'Técnico',
-  USER: 'Usuario',
+  SUPER_ADMIN: 'Super Admin',
+  ADMIN:       'Administrador',
+  TECHNICIAN:  'Técnico',
+  USER:        'Usuario',
+  AUDITOR:     'Auditor',
 }
 
 export default function Header({ onToggleSidebar, role, userName, pendingMovements = 0 }: HeaderProps) {
-  const [search, setSearch] = useState('')
+  const [search, setSearch]       = useState('')
+  const [menuOpen, setMenuOpen]   = useState(false)
+  const { logout } = useAuth()
 
   return (
     <header className="app-header">
@@ -87,15 +92,65 @@ export default function Header({ onToggleSidebar, role, userName, pendingMovemen
           {pendingMovements > 0 && <span className="notification-badge" />}
         </button>
 
-        {/* User chip */}
-        <div className="user-chip">
-          <div className="user-avatar">
-            {userName.slice(0, 2).toUpperCase()}
+        {/* User chip + dropdown */}
+        <div style={{ position: 'relative' }}>
+          <div className="user-chip" onClick={() => setMenuOpen(v => !v)}>
+            <div className="user-avatar">
+              {userName.slice(0, 2).toUpperCase()}
+            </div>
+            <div>
+              <div className="user-chip-name">{userName}</div>
+              <div className="user-chip-role">{ROLE_LABELS[role] ?? role}</div>
+            </div>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ marginLeft: 4, color: 'var(--color-text-muted)', flexShrink: 0 }}>
+              <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </div>
-          <div>
-            <div className="user-chip-name">{userName}</div>
-            <div className="user-chip-role">{ROLE_LABELS[role]}</div>
-          </div>
+
+          {menuOpen && (
+            <>
+              {/* Backdrop */}
+              <div
+                style={{ position: 'fixed', inset: 0, zIndex: 40 }}
+                onClick={() => setMenuOpen(false)}
+              />
+              {/* Dropdown */}
+              <div style={{
+                position: 'absolute', right: 0, top: 'calc(100% + 8px)',
+                background: 'var(--color-bg-elevated)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-lg)',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                minWidth: 180, zIndex: 50,
+                overflow: 'hidden',
+              }}>
+                <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--color-border)' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>{userName}</div>
+                  <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginTop: 1 }}>{ROLE_LABELS[role] ?? role}</div>
+                </div>
+                <div style={{ padding: 4 }}>
+                  <button
+                    onClick={() => { setMenuOpen(false); logout() }}
+                    style={{
+                      width: '100%', background: 'transparent', border: 'none',
+                      color: 'var(--color-danado)', cursor: 'pointer',
+                      padding: '8px 10px', borderRadius: 'var(--radius-sm)',
+                      fontSize: 13, fontWeight: 500, textAlign: 'left',
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      transition: 'background var(--transition-fast)',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-danado-bg)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    Cerrar sesión
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </header>

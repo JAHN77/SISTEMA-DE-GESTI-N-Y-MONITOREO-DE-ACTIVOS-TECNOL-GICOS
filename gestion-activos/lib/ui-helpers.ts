@@ -10,6 +10,8 @@ export function estadoTecnicoBadge(estado: EstadoTecnico): string {
     DANADO:           'badge badge-danado',
     FUERA_DE_SERVICIO:'badge badge-fuera',
     DE_BAJA:          'badge badge-baja',
+    EN_TRANSITO:      'badge badge-transito',
+    REACTIVADO:       'badge badge-reactivado',
   }
   return map[estado] ?? 'badge badge-baja'
 }
@@ -20,6 +22,7 @@ export function estadoUsoBadge(estado: EstadoUso): string {
     ASIGNADO:      'badge badge-asignado',
     RESERVADO:     'badge badge-reservado',
     NO_DISPONIBLE: 'badge badge-no-disponible',
+    PRESTADO:      'badge badge-prestado',
   }
   return map[estado] ?? 'badge badge-baja'
 }
@@ -29,6 +32,9 @@ export function requestStatusBadge(status: RequestStatus): string {
     PENDING:  'badge badge-pending',
     APPROVED: 'badge badge-approved',
     REJECTED: 'badge badge-rejected',
+    CANCELLED: 'badge badge-cancelled',
+    IN_PROGRESS: 'badge badge-in-progress',
+    COMPLETED: 'badge badge-completed',
   }
   return map[status] ?? 'badge'
 }
@@ -43,6 +49,10 @@ export function eventTypeBadge(tipo: EventType): string {
     MANTENIMIENTO:     'badge badge-event-mantenimiento',
     CAMBIO_CATEGORIA:  'badge badge-event-cambio-categoria',
     CAMBIO_UBICACION:  'badge badge-event-cambio-ubicacion',
+    DESBILITADO:       'badge badge-event-deshabilitado',
+    REACTIVADO:        'badge badge-event-reactivado',
+    PRESTAMO:          'badge badge-event-prestamo',
+    DEVOLUCION:        'badge badge-event-devolucion',
   }
   return map[tipo] ?? 'badge'
 }
@@ -52,6 +62,8 @@ export function maintenanceTypeBadge(tipo: MaintenanceType): string {
     PREVENTIVO:  'badge badge-preventivo',
     CORRECTIVO:  'badge badge-correctivo',
     CALIBRACION: 'badge badge-calibracion',
+    ACTUALIZACION: 'badge badge-actualizacion',
+    LIMPIEZA: 'badge badge-limpieza',
   }
   return map[tipo] ?? 'badge'
 }
@@ -65,6 +77,8 @@ export const ESTADO_TECNICO_LABELS: Record<EstadoTecnico, string> = {
   DANADO:           'Dañado',
   FUERA_DE_SERVICIO:'Fuera de Servicio',
   DE_BAJA:          'De Baja',
+  EN_TRANSITO:      'En Tránsito',
+  REACTIVADO:       'Reactivado',
 }
 
 export const ESTADO_USO_LABELS: Record<EstadoUso, string> = {
@@ -72,12 +86,16 @@ export const ESTADO_USO_LABELS: Record<EstadoUso, string> = {
   ASIGNADO:      'Asignado',
   RESERVADO:     'Reservado',
   NO_DISPONIBLE: 'No Disponible',
+  PRESTADO:      'Prestado',
 }
 
 export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = {
   PENDING:  'Pendiente',
   APPROVED: 'Aprobado',
   REJECTED: 'Rechazado',
+  CANCELLED: 'Cancelado',
+  IN_PROGRESS: 'En Progreso',
+  COMPLETED: 'Completado',
 }
 
 export const EVENT_TYPE_LABELS: Record<EventType, string> = {
@@ -89,12 +107,18 @@ export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   MANTENIMIENTO:     'Mantenimiento',
   CAMBIO_CATEGORIA:  'Cambio de Categoría',
   CAMBIO_UBICACION:  'Cambio de Ubicación',
+  DESBILITADO:       'Deshabilitado',
+  REACTIVADO:        'Reactivado',
+  PRESTAMO:          'Préstamo',
+  DEVOLUCION:        'Devolución',
 }
 
 export const MAINTENANCE_TYPE_LABELS: Record<MaintenanceType, string> = {
   PREVENTIVO:  'Preventivo',
   CORRECTIVO:  'Correctivo',
   CALIBRACION: 'Calibración',
+  ACTUALIZACION: 'Actualización',
+  LIMPIEZA: 'Limpieza',
 }
 
 // ─── Date helpers ───────────────────────────────────────

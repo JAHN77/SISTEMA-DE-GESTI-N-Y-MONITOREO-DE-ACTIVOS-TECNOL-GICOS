@@ -7,8 +7,45 @@ const ASSET_INCLUDE = {
   spec: true,
 } as const
 
-const statusMap: Record<string, any> = { 'OPERATIVO': 'OPERATIONAL', 'EN_MANTENIMIENTO': 'UNDER_MAINTENANCE', 'EN_REPARACION': 'UNDER_REPAIR', 'DANADO': 'DAMAGED', 'FUERA_DE_SERVICIO': 'OUT_OF_SERVICE', 'DE_BAJA': 'DECOMMISSIONED' };
-const usageMap: Record<string, any> = { 'DISPONIBLE': 'AVAILABLE', 'ASIGNADO': 'ASSIGNED', 'RESERVADO': 'RESERVED', 'NO_DISPONIBLE': 'UNAVAILABLE' };
+// Spanish → DB (for WHERE filters)
+const statusMap: Record<string, string> = {
+  OPERATIVO:        'OPERATIONAL',
+  EN_MANTENIMIENTO: 'UNDER_MAINTENANCE',
+  EN_REPARACION:    'UNDER_REPAIR',
+  DANADO:           'DAMAGED',
+  FUERA_DE_SERVICIO:'OUT_OF_SERVICE',
+  DE_BAJA:          'DECOMMISSIONED',
+  EN_TRANSITO:      'IN_TRANSIT',
+  REACTIVADO:       'REACTIVATED',
+}
+
+const usageMap: Record<string, string> = {
+  DISPONIBLE:    'AVAILABLE',
+  ASIGNADO:      'ASSIGNED',
+  RESERVADO:     'RESERVED',
+  NO_DISPONIBLE: 'UNAVAILABLE',
+  PRESTADO:      'ON_LOAN',
+}
+
+// DB → Spanish (for API response)
+const techStatusES: Record<string, string> = {
+  OPERATIONAL:       'OPERATIVO',
+  DAMAGED:           'DANADO',
+  UNDER_MAINTENANCE: 'EN_MANTENIMIENTO',
+  UNDER_REPAIR:      'EN_REPARACION',
+  OUT_OF_SERVICE:    'FUERA_DE_SERVICIO',
+  DECOMMISSIONED:    'DE_BAJA',
+  IN_TRANSIT:        'EN_TRANSITO',
+  REACTIVATED:       'REACTIVADO',
+}
+
+const usageStatusES: Record<string, string> = {
+  AVAILABLE:   'DISPONIBLE',
+  ASSIGNED:    'ASIGNADO',
+  RESERVED:    'RESERVADO',
+  UNAVAILABLE: 'NO_DISPONIBLE',
+  ON_LOAN:     'PRESTADO',
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -60,11 +97,11 @@ export async function GET(req: NextRequest) {
       nombre: asset.name,
       codigoInventario: asset.inventoryCode,
       serial: asset.serialNumber,
-      estadoTecnico: asset.technicalStatus,
-      estadoUso: asset.usageStatus,
+      estadoTecnico: techStatusES[asset.technicalStatus] ?? asset.technicalStatus,
+      estadoUso: usageStatusES[asset.usageStatus] ?? asset.usageStatus,
       category: asset.category ? { ...asset.category, nombre: asset.category.name, descripcion: asset.category.description } : null,
       location: asset.location ? { ...asset.location, nombre: asset.location.name, descripcion: asset.location.description } : null,
-    }));
+    }))
 
     return NextResponse.json({
       data: mappedData,
@@ -121,9 +158,9 @@ export async function POST(req: NextRequest) {
       nombre: asset.name,
       codigoInventario: asset.inventoryCode,
       serial: asset.serialNumber,
-      estadoTecnico: asset.technicalStatus,
-      estadoUso: asset.usageStatus,
-    };
+      estadoTecnico: techStatusES[asset.technicalStatus] ?? asset.technicalStatus,
+      estadoUso: usageStatusES[asset.usageStatus] ?? asset.usageStatus,
+    }
 
     return NextResponse.json(mappedAsset, { status: 201 })
   } catch (error: any) {
