@@ -20,7 +20,7 @@ function toBase64url(buf: ArrayBuffer | Uint8Array): string {
   return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
 }
 
-function fromBase64url(str: string): Uint8Array {
+function fromBase64url(str: string): ArrayBuffer {
   const padded = str
     .replace(/-/g, '+')
     .replace(/_/g, '/')
@@ -28,7 +28,7 @@ function fromBase64url(str: string): Uint8Array {
   const bin = atob(padded)
   const bytes = new Uint8Array(bin.length)
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
-  return bytes
+  return bytes.buffer as ArrayBuffer
 }
 
 async function getKey(secret: string, usage: KeyUsage[]): Promise<CryptoKey> {
