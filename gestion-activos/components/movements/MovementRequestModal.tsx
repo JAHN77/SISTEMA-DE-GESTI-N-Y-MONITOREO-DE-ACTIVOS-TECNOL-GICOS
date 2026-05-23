@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import type { Asset, Location } from '@/types/domain'
 import { useToast } from '@/components/ui/ToastProvider'
+import { TruckIcon, XIcon, AlertIcon } from '@/components/icons'
 
 interface Props {
   asset: Asset
@@ -63,8 +64,8 @@ export default function MovementRequestModal({ asset, onClose, onSuccess }: Prop
       <div className="modal-overlay" onClick={onClose}>
         <div className="modal" id="movement-request-modal" onClick={e => e.stopPropagation()}>
           <div className="modal-header">
-            <span className="modal-title">🚚 Solicitar Movimiento</span>
-            <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}>✕</button>
+            <span className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}><TruckIcon size={15} /> Solicitar Movimiento</span>
+            <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose} style={{ display: 'flex', alignItems: 'center' }}><XIcon size={14} /></button>
           </div>
           <div className="modal-body">
             {/* Asset info — read only */}
@@ -78,7 +79,7 @@ export default function MovementRequestModal({ asset, onClose, onSuccess }: Prop
             <div className="form-group">
               <label className="form-label">Ubicación Actual</label>
               <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', padding: '8px 0' }}>
-                📍 {asset.location?.nombre ?? '—'}
+                {asset.location?.nombre ?? '—'}
               </div>
             </div>
 
@@ -118,8 +119,8 @@ export default function MovementRequestModal({ asset, onClose, onSuccess }: Prop
               {errors.motivo && <div className="form-error">{errors.motivo}</div>}
             </div>
 
-            <div style={{ padding: '10px 14px', background: 'rgba(245,158,11,0.08)', borderRadius: 8, fontSize: 12, color: 'var(--color-mantenimiento)', border: '1px solid rgba(245,158,11,0.2)' }}>
-              ⚠️ La solicitud quedará en estado <strong>PENDIENTE</strong> hasta que un Administrador la apruebe.
+            <div style={{ padding: '10px 14px', background: 'rgba(245,158,11,0.08)', borderRadius: 8, fontSize: 12, color: 'var(--color-mantenimiento)', border: '1px solid rgba(245,158,11,0.2)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <AlertIcon size={13} style={{ flexShrink: 0, marginTop: 1 }} /> La solicitud quedará en estado <strong>PENDIENTE</strong> hasta que un Administrador la apruebe.
             </div>
           </div>
           <div className="modal-footer">
@@ -132,7 +133,7 @@ export default function MovementRequestModal({ asset, onClose, onSuccess }: Prop
             >
               {loading ? (
                 <><span className="loading-spinner" style={{ width: 14, height: 14 }} /> Enviando...</>
-              ) : '🚚 Enviar Solicitud'}
+              ) : <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><TruckIcon size={14} /> Enviar Solicitud</span>}
             </button>
           </div>
         </div>

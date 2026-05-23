@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import type { MaintenanceType } from '@/types/domain'
 import { maintenanceTypeBadge, MAINTENANCE_TYPE_LABELS, formatDate, formatCurrency } from '@/lib/ui-helpers'
-// Client-side page — fetches from API routes
+import { WrenchIcon } from '@/components/icons'
 export default function MaintenancePage() {
   const [records, setRecords] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -70,7 +70,7 @@ export default function MaintenancePage() {
               <tr>
                 <td colSpan={8}>
                   <div className="empty-state">
-                    <div className="empty-state-icon">🔧</div>
+                    <div className="empty-state-icon"><WrenchIcon size={32} strokeWidth={1.5} /></div>
                     <div className="empty-state-title">Sin registros de mantenimiento</div>
                     <div className="empty-state-desc">Los mantenimientos se registran desde la vista de detalle de cada activo.</div>
                   </div>

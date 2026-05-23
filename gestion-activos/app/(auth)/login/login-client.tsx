@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { DashboardIcon, ClipboardIcon, EyeIcon, AlertIcon } from '@/components/icons'
 
 // ─── Brand Panel ─────────────────────────────────────────────────
 function BrandPanel() {
@@ -37,22 +38,22 @@ function BrandPanel() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {[
             {
-              icon: '📊',
+              icon: <DashboardIcon size={16} />,
               label: 'Dashboard operacional',
               desc: 'Monitoreo en tiempo real del estado de todos los activos',
             },
             {
-              icon: '🔐',
+              icon: <EyeIcon size={16} />,
               label: 'Control de roles (RBAC)',
               desc: 'Super Admin, Admin, Técnico, Usuario y Auditor',
             },
             {
-              icon: '📋',
+              icon: <ClipboardIcon size={16} />,
               label: 'Auditoría completa',
               desc: 'Historial de eventos, movimientos y cambios de estado',
             },
             {
-              icon: '📱',
+              icon: <AlertIcon size={16} />,
               label: 'QR Tracking',
               desc: 'Identificación y rastreo de activos con códigos QR',
             },
@@ -61,7 +62,8 @@ function BrandPanel() {
               <div style={{
                 width: 34, height: 34, background: 'var(--color-bg-overlay)',
                 borderRadius: 8, display: 'flex', alignItems: 'center',
-                justifyContent: 'center', fontSize: 15, flexShrink: 0,
+                justifyContent: 'center', flexShrink: 0,
+                color: 'var(--color-text-secondary)',
               }}>{f.icon}</div>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>{f.label}</div>
@@ -169,7 +171,7 @@ export default function LoginClient() {
           {/* Expired session alert */}
           {expired && (
             <div className="auth-alert auth-alert-warning" style={{ marginBottom: 16 }}>
-              <span>⚠</span>
+              <AlertIcon size={14} style={{ flexShrink: 0 }} />
               <div>
                 <div style={{ fontWeight: 600, marginBottom: 1 }}>Sesión expirada</div>
                 <div style={{ color: 'var(--color-text-secondary)', fontSize: 11 }}>
@@ -237,7 +239,7 @@ export default function LoginClient() {
                     fontSize: 14,
                   }}
                 >
-                  {showPwd ? '🙈' : '👁'}
+                  <EyeIcon size={14} />
                 </button>
               </div>
               {pwdTouched && !pwdValid && (

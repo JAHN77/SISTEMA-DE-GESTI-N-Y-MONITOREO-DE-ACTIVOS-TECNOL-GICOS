@@ -16,8 +16,19 @@ export async function GET() {
       ...m,
       motivo: m.reason,
       nuevaLocationId: m.destinationId,
-      nuevaLocation: m.destination,
-      asset: m.asset ? { ...m.asset, nombre: m.asset.name, codigoInventario: m.asset.inventoryCode, location: m.asset.location ? { ...m.asset.location, nombre: m.asset.location.name } : null } : null
+      nuevaLocation: m.destination
+        ? { ...m.destination, nombre: m.destination.name }
+        : null,
+      asset: m.asset
+        ? {
+            ...m.asset,
+            nombre: m.asset.name,
+            codigoInventario: m.asset.inventoryCode,
+            location: m.asset.location
+              ? { ...m.asset.location, nombre: m.asset.location.name }
+              : null,
+          }
+        : null,
     }))
     return NextResponse.json(mappedMovements)
   } catch (error) {

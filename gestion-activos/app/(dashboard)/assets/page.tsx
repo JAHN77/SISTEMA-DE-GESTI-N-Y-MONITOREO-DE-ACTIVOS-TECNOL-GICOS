@@ -9,6 +9,7 @@ import {
 } from '@/lib/ui-helpers'
 import MovementRequestModal from '@/components/movements/MovementRequestModal'
 import { useAuth } from '@/context/AuthContext'
+import { SearchIcon, PackageIcon, EyeIcon, EditIcon, TruckIcon, TrashIcon, XIcon } from '@/components/icons'
 
 const ESTADOS_TECNICOS: EstadoTecnico[] = ['OPERATIVO','EN_MANTENIMIENTO','EN_REPARACION','DANADO','FUERA_DE_SERVICIO','DE_BAJA','EN_TRANSITO']
 const ESTADOS_USO: EstadoUso[] = ['DISPONIBLE','ASIGNADO','RESERVADO','NO_DISPONIBLE','PRESTADO']
@@ -108,7 +109,7 @@ export default function AssetsPage() {
 
       {/* Search */}
       <div style={{ marginBottom: 12, position: 'relative' }}>
-        <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }}>🔍</span>
+        <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)', display: 'flex' }}><SearchIcon size={14} /></span>
         <input
           id="asset-search"
           className="form-input"
@@ -156,8 +157,8 @@ export default function AssetsPage() {
         </div>
 
         {(filterTecnico.length > 0 || filterUso.length > 0 || filterCat || filterLoc || search) && (
-          <button className="btn btn-ghost btn-sm" onClick={() => { setFilterTecnico([]); setFilterUso([]); setFilterCat(''); setFilterLoc(''); setSearch(''); setPage(1) }}>
-            ✕ Limpiar filtros
+          <button className="btn btn-ghost btn-sm" onClick={() => { setFilterTecnico([]); setFilterUso([]); setFilterCat(''); setFilterLoc(''); setSearch(''); setPage(1) }} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <XIcon size={12} /> Limpiar filtros
           </button>
         )}
       </div>
@@ -171,6 +172,7 @@ export default function AssetsPage() {
               <th onClick={() => handleSort('nombre')}>Nombre <SortIcon col="nombre" /></th>
               <th>Categoría</th>
               <th>Ubicación</th>
+              <th>Asignado a</th>
               <th>Estado Técnico</th>
               <th>Estado de Uso</th>
               <th style={{ textAlign: 'right' }}>Acciones</th>
@@ -180,16 +182,16 @@ export default function AssetsPage() {
             {loading ? (
               [...Array(8)].map((_, i) => (
                 <tr key={i}>
-                  {[...Array(7)].map((_, j) => (
-                    <td key={j}><div className="skeleton" style={{ height: 14, borderRadius: 4, width: j === 6 ? 60 : '80%' }} /></td>
+                  {[...Array(8)].map((_, j) => (
+                    <td key={j}><div className="skeleton" style={{ height: 14, borderRadius: 4, width: j === 7 ? 60 : '80%' }} /></td>
                   ))}
                 </tr>
               ))
             ) : assets.length === 0 ? (
               <tr>
-                <td colSpan={7}>
+                <td colSpan={8}>
                   <div className="empty-state">
-                    <div className="empty-state-icon">📦</div>
+                    <div className="empty-state-icon"><PackageIcon size={32} strokeWidth={1.5} /></div>
                     <div className="empty-state-title">Sin activos</div>
                     <div className="empty-state-desc">No se encontraron activos con los filtros actuales.</div>
                     {canEdit && (
@@ -198,7 +200,7 @@ export default function AssetsPage() {
                   </div>
                 </td>
               </tr>
-            ) : assets.map(asset => (
+            ) : (assets as any[]).map(asset => (
               <tr key={asset.id}>
                 <td><span className="font-mono" style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{asset.codigoInventario}</span></td>
                 <td>
@@ -207,19 +209,31 @@ export default function AssetsPage() {
                   </Link>
                   {asset.serial && <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>S/N: {asset.serial}</div>}
                 </td>
-                <td style={{ color: 'var(--color-text-secondary)' }}>{asset.category?.name}</td>
-                <td style={{ color: 'var(--color-text-secondary)' }}>{asset.location?.nombre}</td>
-                <td><span className={estadoTecnicoBadge(asset.estadoTecnico)}>{ESTADO_TECNICO_LABELS[asset.estadoTecnico]}</span></td>
-                <td><span className={estadoUsoBadge(asset.estadoUso)}>{ESTADO_USO_LABELS[asset.estadoUso]}</span></td>
+                <td style={{ color: 'var(--color-text-secondary)' }}>{asset.category?.name ?? '—'}</td>
+                <td style={{ color: 'var(--color-text-secondary)' }}>{asset.location?.nombre ?? '—'}</td>
+                <td>
+                  {asset.assignedTo ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      <span style={{ fontSize: 13, color: 'var(--color-text-primary)', fontWeight: 500 }}>{asset.assignedTo.name}</span>
+                      {asset.assignedTo.department && (
+                        <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{asset.assignedTo.department}</span>
+                      )}
+                    </div>
+                  ) : (
+                    <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>—</span>
+                  )}
+                </td>
+                <td><span className={estadoTecnicoBadge(asset.estadoTecnico as EstadoTecnico)}>{ESTADO_TECNICO_LABELS[asset.estadoTecnico as EstadoTecnico]}</span></td>
+                <td><span className={estadoUsoBadge(asset.estadoUso as EstadoUso)}>{ESTADO_USO_LABELS[asset.estadoUso as EstadoUso]}</span></td>
                 <td>
                   <div className="table-actions" style={{ justifyContent: 'flex-end' }}>
-                    <Link href={`/assets/${asset.id}`} className="btn btn-ghost btn-icon btn-sm" title="Ver detalle">👁</Link>
+                    <Link href={`/assets/${asset.id}`} className="btn btn-ghost btn-icon btn-sm" title="Ver detalle"><EyeIcon size={14} /></Link>
                     {canEdit && (
-                      <Link href={`/assets/${asset.id}/edit`} className="btn btn-ghost btn-icon btn-sm" title="Editar">✏️</Link>
+                      <Link href={`/assets/${asset.id}/edit`} className="btn btn-ghost btn-icon btn-sm" title="Editar"><EditIcon size={14} /></Link>
                     )}
-                    <button className="btn btn-ghost btn-icon btn-sm" title="Solicitar movimiento" onClick={() => setMovementAsset(asset)}>🚚</button>
+                    <button className="btn btn-ghost btn-icon btn-sm" title="Solicitar movimiento" onClick={() => setMovementAsset(asset)}><TruckIcon size={14} /></button>
                     {canAdmin && (
-                      <button className="btn btn-ghost btn-icon btn-sm" title="Eliminar" onClick={() => handleDelete(asset)} style={{ color: 'var(--color-danado)' }}>🗑</button>
+                      <button className="btn btn-ghost btn-icon btn-sm" title="Eliminar" onClick={() => handleDelete(asset)} style={{ color: 'var(--color-danado)' }}><TrashIcon size={14} /></button>
                     )}
                   </div>
                 </td>

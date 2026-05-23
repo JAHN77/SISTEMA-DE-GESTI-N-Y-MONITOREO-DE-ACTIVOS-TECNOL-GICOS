@@ -5,6 +5,12 @@ const ASSET_INCLUDE = {
   category: true,
   location: true,
   spec: true,
+  assignments: {
+    where: { endDate: null },
+    include: { user: { select: { id: true, name: true, department: true } } },
+    take: 1,
+    orderBy: { startDate: 'desc' as const },
+  },
 } as const
 
 // Spanish → DB (for WHERE filters)
@@ -92,16 +98,20 @@ export async function GET(req: NextRequest) {
       prisma.asset.count({ where }),
     ])
 
-    const mappedData = data.map(asset => ({
-      ...asset,
-      nombre: asset.name,
-      codigoInventario: asset.inventoryCode,
-      serial: asset.serialNumber,
-      estadoTecnico: techStatusES[asset.technicalStatus] ?? asset.technicalStatus,
-      estadoUso: usageStatusES[asset.usageStatus] ?? asset.usageStatus,
-      category: asset.category ? { ...asset.category, nombre: asset.category.name, descripcion: asset.category.description } : null,
-      location: asset.location ? { ...asset.location, nombre: asset.location.name, descripcion: asset.location.description } : null,
-    }))
+    const mappedData = data.map(asset => {
+      const { assignments, ...rest } = asset as any
+      return {
+        ...rest,
+        nombre: asset.name,
+        codigoInventario: asset.inventoryCode,
+        serial: asset.serialNumber,
+        estadoTecnico: techStatusES[asset.technicalStatus] ?? asset.technicalStatus,
+        estadoUso: usageStatusES[asset.usageStatus] ?? asset.usageStatus,
+        category: asset.category ? { ...asset.category, nombre: asset.category.name, descripcion: asset.category.description } : null,
+        location: asset.location ? { ...asset.location, nombre: asset.location.name, descripcion: asset.location.description } : null,
+        assignedTo: (assignments as any[])?.[0]?.user ?? null,
+      }
+    })
 
     return NextResponse.json({
       data: mappedData,

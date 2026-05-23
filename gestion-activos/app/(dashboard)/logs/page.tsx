@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import type { EventType } from '@/types/domain'
 import { eventTypeBadge, EVENT_TYPE_LABELS, formatDateTime, timeAgo } from '@/lib/ui-helpers'
+import { ClipboardIcon } from '@/components/icons'
 
 const ALL_TYPES: EventType[] = ['CREACION','ACTUALIZACION','CAMBIO_ESTADO','ASIGNACION','DESASIGNACION','MANTENIMIENTO','CAMBIO_CATEGORIA','CAMBIO_UBICACION']
 
@@ -69,7 +70,7 @@ export default function LogsPage() {
               <tr>
                 <td colSpan={5}>
                   <div className="empty-state">
-                    <div className="empty-state-icon">📋</div>
+                    <div className="empty-state-icon"><ClipboardIcon size={32} strokeWidth={1.5} /></div>
                     <div className="empty-state-title">Sin eventos</div>
                     <div className="empty-state-desc">No se encontraron eventos con el filtro seleccionado.</div>
                   </div>

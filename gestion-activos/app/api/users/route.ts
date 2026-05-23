@@ -18,6 +18,7 @@ export async function GET() {
       activeAssignments: u._count.assignments,
     })))
   } catch (error) {
+    console.error('[GET /api/users]', error)
     return NextResponse.json({ error: 'Error al obtener usuarios' }, { status: 500 })
   }
 }

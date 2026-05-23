@@ -6,6 +6,7 @@ import type { Role } from '@/types/domain'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/components/ui/ToastProvider'
 import { formatDate } from '@/lib/ui-helpers'
+import { SearchIcon, UsersIcon, EditIcon, BanIcon, SaveIcon, AlertIcon, XIcon } from '@/components/icons'
 
 interface UserRow {
   id: number
@@ -167,7 +168,7 @@ export default function UsersPage() {
       {/* Search + filter */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
         <div style={{ flex: 1, position: 'relative' }}>
-          <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }}>🔍</span>
+          <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)', display: 'flex' }}><SearchIcon size={14} /></span>
           <input
             id="user-search"
             className="form-input"
@@ -187,8 +188,8 @@ export default function UsersPage() {
           {ALL_ROLES.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
         </select>
         {(search || filterRole) && (
-          <button className="btn btn-ghost btn-sm" onClick={() => { setSearch(''); setFilterRole('') }}>
-            ✕ Limpiar
+          <button className="btn btn-ghost btn-sm" onClick={() => { setSearch(''); setFilterRole('') }} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <XIcon size={12} /> Limpiar
           </button>
         )}
       </div>
@@ -215,7 +216,7 @@ export default function UsersPage() {
               <tr>
                 <td colSpan={6}>
                   <div className="empty-state">
-                    <div className="empty-state-icon">👥</div>
+                    <div className="empty-state-icon"><UsersIcon size={32} strokeWidth={1.5} /></div>
                     <div className="empty-state-title">Sin usuarios</div>
                     <div className="empty-state-desc">No se encontraron usuarios con los filtros actuales.</div>
                   </div>
@@ -255,7 +256,7 @@ export default function UsersPage() {
                         className="btn btn-ghost btn-icon btn-sm"
                         title="Editar rol"
                         onClick={() => { setEditUser(u); setEditRole(u.role); setEditDept(u.department ?? '') }}
-                      >✏️</button>
+                      ><EditIcon size={14} /></button>
                       {isSuperAdmin && u.id !== me.id && (
                         <button
                           id={`btn-disable-user-${u.id}`}
@@ -263,7 +264,7 @@ export default function UsersPage() {
                           title="Deshabilitar usuario"
                           style={{ color: 'var(--color-danado)' }}
                           onClick={() => handleDisable(u)}
-                        >🚫</button>
+                        ><BanIcon size={14} /></button>
                       )}
                     </div>
                   </td>
@@ -311,7 +312,7 @@ export default function UsersPage() {
                   {ALL_ROLES.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
                 </select>
                 <div className="form-hint" style={{ marginTop: 6 }}>
-                  {form.role === 'SUPER_ADMIN' && '⚠️ Acceso total al sistema incluyendo configuración.'}
+                  {form.role === 'SUPER_ADMIN' && <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--color-mantenimiento)' }}><AlertIcon size={12} /> Acceso total al sistema incluyendo configuración.</span>}
                   {form.role === 'ADMIN' && 'Acceso completo excepto configuración del sistema.'}
                   {form.role === 'TECHNICIAN' && 'Puede gestionar activos y registrar mantenimientos.'}
                   {form.role === 'USER' && 'Solo puede ver activos y solicitar movimientos.'}
@@ -334,7 +335,7 @@ export default function UsersPage() {
         <div className="modal-overlay" onClick={() => setEditUser(null)}>
           <div className="modal" style={{ maxWidth: 440 }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <span className="modal-title">✏️ Editar Usuario</span>
+              <span className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}><EditIcon size={16} /> Editar Usuario</span>
             </div>
             <div className="modal-body">
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, padding: '10px 14px', background: 'var(--color-bg-elevated)', borderRadius: 8 }}>
@@ -362,7 +363,7 @@ export default function UsersPage() {
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setEditUser(null)}>Cancelar</button>
               <button id="btn-confirm-edit-user" className="btn btn-primary" onClick={handleEditSave} disabled={editSaving}>
-                {editSaving ? 'Guardando...' : '💾 Guardar'}
+                {editSaving ? 'Guardando...' : <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><SaveIcon size={14} /> Guardar</span>}
               </button>
             </div>
           </div>

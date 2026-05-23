@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import { CheckIcon, XIcon, AlertIcon, InfoIcon } from '@/components/icons'
 
 type ToastType = 'success' | 'error' | 'warning' | 'info'
 
@@ -21,11 +22,11 @@ export function useToast() {
   return useContext(ToastContext)
 }
 
-const ICONS: Record<ToastType, string> = {
-  success: '✓',
-  error:   '✕',
-  warning: '⚠',
-  info:    'ℹ',
+const ICONS: Record<ToastType, React.ReactNode> = {
+  success: <CheckIcon size={14} strokeWidth={2.5} />,
+  error:   <XIcon size={14} strokeWidth={2.5} />,
+  warning: <AlertIcon size={14} strokeWidth={2.5} />,
+  info:    <InfoIcon size={14} strokeWidth={2.5} />,
 }
 
 const COLORS: Record<ToastType, string> = {
@@ -45,7 +46,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
     <div className={`toast toast-${toast.type}`} role="alert">
       <span
         className="toast-icon"
-        style={{ color: COLORS[toast.type], fontWeight: 700, fontSize: 14 }}
+        style={{ color: COLORS[toast.type], display: 'flex', alignItems: 'center' }}
       >
         {ICONS[toast.type]}
       </span>
@@ -61,12 +62,14 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
           border: 'none',
           color: 'var(--color-text-muted)',
           cursor: 'pointer',
-          fontSize: 14,
           lineHeight: 1,
           flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          padding: '2px',
         }}
       >
-        ✕
+        <XIcon size={14} />
       </button>
     </div>
   )

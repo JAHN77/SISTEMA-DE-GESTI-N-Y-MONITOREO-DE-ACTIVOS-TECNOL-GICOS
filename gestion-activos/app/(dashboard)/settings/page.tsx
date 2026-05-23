@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/components/ui/ToastProvider'
+import { UserIcon, InfoIcon } from '@/components/icons'
 
 const ROLE_LABELS: Record<string, string> = {
   SUPER_ADMIN: 'Super Administrador',
@@ -74,7 +75,7 @@ export default function SettingsPage() {
 
       {/* Profile card */}
       <div className="form-section">
-        <div className="form-section-title">👤 Perfil de Usuario</div>
+        <div className="form-section-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}><UserIcon size={14} /> Perfil de Usuario</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 20, padding: '16px 0' }}>
           <div style={{
             width: 64, height: 64, borderRadius: '50%',
@@ -177,7 +178,7 @@ export default function SettingsPage() {
 
       {/* System info */}
       <div className="form-section">
-        <div className="form-section-title">ℹ️ Información del Sistema</div>
+        <div className="form-section-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}><InfoIcon size={14} /> Información del Sistema</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {[
             ['Sistema', 'ITAM — Asset Management'],
