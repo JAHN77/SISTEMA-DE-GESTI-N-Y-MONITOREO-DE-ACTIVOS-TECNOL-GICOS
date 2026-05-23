@@ -1,7 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
+import NotificationDropdown from '@/components/notifications/NotificationDropdown'
 import type { Role } from '@/types/domain'
 
 interface HeaderProps {
@@ -23,6 +26,14 @@ export default function Header({ onToggleSidebar, role, userName, pendingMovemen
   const [search, setSearch]       = useState('')
   const [menuOpen, setMenuOpen]   = useState(false)
   const { logout } = useAuth()
+  const router = useRouter()
+
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault()
+    const q = search.trim()
+    if (q) router.push(`/assets?search=${encodeURIComponent(q)}`)
+    else router.push('/assets')
+  }
 
   return (
     <header className="app-header">
@@ -44,13 +55,13 @@ export default function Header({ onToggleSidebar, role, userName, pendingMovemen
 
 
       {/* Global search */}
-      <div className="header-search">
-        <span className="header-search-icon">
+      <form className="header-search" onSubmit={handleSearch}>
+        <button type="submit" className="header-search-icon" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }} title="Buscar">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
             <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5"/>
             <path d="M11 11l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
           </svg>
-        </span>
+        </button>
         <input
           type="text"
           placeholder="Buscar activos (nombre, código, serial)..."
@@ -58,39 +69,34 @@ export default function Header({ onToggleSidebar, role, userName, pendingMovemen
           onChange={e => setSearch(e.target.value)}
           id="global-search"
         />
-      </div>
+      </form>
 
       <div className="header-spacer" />
 
       <div className="header-actions">
         {/* Quick actions */}
-        <button style={{ 
-          background: 'var(--color-primary)', 
-          color: 'white', 
-          border: 'none', 
-          padding: '6px 12px', 
-          borderRadius: '6px', 
-          fontSize: '13px', 
-          fontWeight: 500, 
+        <Link href="/assets/new" style={{
+          background: 'var(--color-primary)',
+          color: 'white',
+          border: 'none',
+          padding: '6px 12px',
+          borderRadius: '6px',
+          fontSize: '13px',
+          fontWeight: 500,
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
-          gap: '6px'
+          gap: '6px',
+          textDecoration: 'none',
         }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           Nuevo
-        </button>
+        </Link>
 
         <div style={{ width: '1px', height: '24px', background: 'var(--color-border)', margin: '0 8px' }} />
 
         {/* Notifications */}
-        <button className="header-icon-btn" title="Movimientos pendientes">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M8 1a5 5 0 015 5c0 3 1 4 1.5 5h-13C2 10 3 9 3 6a5 5 0 015-5z" stroke="currentColor" strokeWidth="1.5"/>
-            <path d="M6.5 13a1.5 1.5 0 003 0" stroke="currentColor" strokeWidth="1.5"/>
-          </svg>
-          {pendingMovements > 0 && <span className="notification-badge" />}
-        </button>
+        <NotificationDropdown />
 
         {/* User chip + dropdown */}
         <div style={{ position: 'relative' }}>
@@ -129,6 +135,23 @@ export default function Header({ onToggleSidebar, role, userName, pendingMovemen
                   <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginTop: 1 }}>{ROLE_LABELS[role] ?? role}</div>
                 </div>
                 <div style={{ padding: 4 }}>
+                  <Link
+                    href="/settings"
+                    onClick={() => setMenuOpen(false)}
+                    style={{
+                      width: '100%', background: 'transparent', border: 'none',
+                      color: 'var(--color-text-secondary)', cursor: 'pointer',
+                      padding: '8px 10px', borderRadius: 'var(--radius-sm)',
+                      fontSize: 13, fontWeight: 500, textAlign: 'left',
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      textDecoration: 'none',
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    Configuración
+                  </Link>
                   <button
                     onClick={() => { setMenuOpen(false); logout() }}
                     style={{

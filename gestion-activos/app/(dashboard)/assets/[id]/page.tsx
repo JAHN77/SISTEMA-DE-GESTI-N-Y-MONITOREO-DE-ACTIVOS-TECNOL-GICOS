@@ -527,7 +527,7 @@ function AssignmentsTab({
 
   useEffect(() => {
     setUsersLoading(true)
-    fetch('/api/users').then(r => r.json())
+    fetch('/api/users/assignable').then(r => r.json())
       .then(data => { if (Array.isArray(data)) setUsers(data) })
       .finally(() => setUsersLoading(false))
   }, [])

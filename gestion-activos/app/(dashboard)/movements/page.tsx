@@ -42,8 +42,7 @@ export default function MovementsPage() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        accion:        action === 'APPROVED' ? 'APROBADO' : 'RECHAZADO',
-        aprobadoPorId: user.id,
+        accion: action === 'APPROVED' ? 'APROBADO' : 'RECHAZADO',
       }),
     })
     const data = await res.json()

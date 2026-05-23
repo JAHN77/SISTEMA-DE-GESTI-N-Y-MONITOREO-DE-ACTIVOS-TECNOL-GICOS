@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireRole } from '@/lib/auth'
 
 type Params = { params: Promise<{ id: string }> }
 
 // POST /api/assets/:id/assignments — assign asset to user
 // Business rule: only one active assignment per asset (AssetAssignment with endDate IS NULL)
 export async function POST(req: NextRequest, { params }: Params) {
+  const auth = await requireRole(req, ['SUPER_ADMIN', 'ADMIN'])
+  if (auth instanceof Response) return auth
+  const { user: actor } = auth
+
   const { id } = await params
   const assetId = parseInt(id)
 
   try {
-    const { userId, asignadoPorId, reason, notes } = await req.json()
+    const { userId, reason, notes } = await req.json()
 
     if (!userId) {
       return NextResponse.json({ error: 'userId es requerido' }, { status: 400 })
@@ -31,7 +36,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       data: {
         assetId,
         userId:      parseInt(userId),
-        createdById: asignadoPorId ? parseInt(asignadoPorId) : null,
+        createdById: actor.id,
         reason:      reason ?? null,
         notes:       notes  ?? null,
       },
@@ -44,7 +49,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         type: 'ASSIGNED',
         description: `Activo asignado a ${assignment.user.name}.`,
         assetId,
-        userId: asignadoPorId ? parseInt(asignadoPorId) : null,
+        userId: actor.id,
       },
     })
 
@@ -69,6 +74,10 @@ export async function POST(req: NextRequest, { params }: Params) {
 
 // PATCH /api/assets/:id/assignments — end active assignment
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const auth = await requireRole(req, ['SUPER_ADMIN', 'ADMIN'])
+  if (auth instanceof Response) return auth
+  const { user: actor } = auth
+
   const { id } = await params
   const assetId = parseInt(id)
 
@@ -92,6 +101,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         type: 'UNASSIGNED',
         description: `Asignación de ${updated.user.name} finalizada.`,
         assetId,
+        userId: actor.id,
       },
     })
 

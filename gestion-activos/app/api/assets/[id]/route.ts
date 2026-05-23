@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireRole } from '@/lib/auth'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -105,10 +106,14 @@ export async function GET(_req: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const auth = await requireRole(req, ['SUPER_ADMIN', 'ADMIN', 'TECHNICIAN'])
+  if (auth instanceof Response) return auth
+  const { user: actor } = auth
+
   const { id } = await params
   try {
     const body = await req.json()
-    const { nombre, serial, estadoTecnico, estadoUso, imageUrl, categoryId, locationId, spec, userId } = body
+    const { nombre, serial, estadoTecnico, estadoUso, imageUrl, categoryId, locationId, spec } = body
 
     const existing = await prisma.asset.findUnique({ where: { id: parseInt(id), deletedAt: null } })
     if (!existing) return NextResponse.json({ error: 'Activo no encontrado' }, { status: 404 })
@@ -139,7 +144,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
               description: stateChanged
                 ? `Estado técnico cambiado a ${estadoTecnico}.`
                 : `Activo actualizado.`,
-              ...(userId && { userId: parseInt(userId) }),
+              userId: actor.id,
             },
           ],
         },
@@ -166,7 +171,11 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: Params) {
+export async function DELETE(req: NextRequest, { params }: Params) {
+  const auth = await requireRole(req, ['SUPER_ADMIN', 'ADMIN'])
+  if (auth instanceof Response) return auth
+  const { user: actor } = auth
+
   const { id } = await params
   try {
     const existing = await prisma.asset.findUnique({ where: { id: parseInt(id), deletedAt: null } })
@@ -181,6 +190,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
           create: {
             type: 'STATUS_CHANGED',
             description: `Activo "${existing.name}" marcado como eliminado (soft delete).`,
+            userId: actor.id,
           },
         },
       },

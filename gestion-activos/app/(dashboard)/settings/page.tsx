@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/components/ui/ToastProvider'
-import { UserIcon, InfoIcon } from '@/components/icons'
+import { UserIcon, InfoIcon, EditIcon, SaveIcon } from '@/components/icons'
 
 const ROLE_LABELS: Record<string, string> = {
   SUPER_ADMIN: 'Super Administrador',
@@ -25,6 +25,30 @@ const ROLE_DESC: Record<string, string> = {
 export default function SettingsPage() {
   const { user } = useAuth()
   const { toast } = useToast()
+
+  // Profile edit form — fetch current department from API on mount since JWT doesn't carry it
+  const [profileForm, setProfileForm] = useState({ name: user.name, department: '' })
+  const [profileSaving, setProfileSaving] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/auth/me').then(r => r.json()).then(d => {
+      setProfileForm(f => ({ ...f, department: d.department ?? '' }))
+    })
+  }, [])
+
+  async function handleSaveProfile() {
+    if (!profileForm.name.trim()) { toast('error', 'Error', 'El nombre es requerido'); return }
+    setProfileSaving(true)
+    const res = await fetch('/api/auth/me', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: profileForm.name, department: profileForm.department }),
+    })
+    const data = await res.json()
+    setProfileSaving(false)
+    if (!res.ok) { toast('error', 'Error al guardar', data.error); return }
+    toast('success', 'Perfil actualizado', 'Los cambios han sido guardados.')
+  }
 
   const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' })
   const [pwErrors, setPwErrors] = useState<Record<string, string>>({})
@@ -121,6 +145,43 @@ export default function SettingsPage() {
         <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(99,102,241,0.06)', borderRadius: 8, border: '1px solid rgba(99,102,241,0.15)' }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-primary)', marginBottom: 2 }}>PERMISOS DEL ROL</div>
           <div style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>{ROLE_DESC[user.role]}</div>
+        </div>
+      </div>
+
+      {/* Edit profile */}
+      <div className="form-section">
+        <div className="form-section-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}><EditIcon size={14} /> Editar Perfil</div>
+        <div className="form-row form-row-1" style={{ maxWidth: 400 }}>
+          <div className="form-group">
+            <label className="form-label" htmlFor="profile-name">Nombre <span className="required">*</span></label>
+            <input
+              id="profile-name"
+              type="text"
+              className="form-input"
+              value={profileForm.name}
+              onChange={e => setProfileForm(p => ({ ...p, name: e.target.value }))}
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label" htmlFor="profile-dept">Departamento</label>
+            <input
+              id="profile-dept"
+              type="text"
+              className="form-input"
+              placeholder="Ej. Soporte Técnico"
+              value={profileForm.department}
+              onChange={e => setProfileForm(p => ({ ...p, department: e.target.value }))}
+            />
+          </div>
+          <button
+            className="btn btn-primary"
+            onClick={handleSaveProfile}
+            disabled={profileSaving}
+            style={{ marginTop: 4, alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <SaveIcon size={13} />
+            {profileSaving ? 'Guardando...' : 'Guardar Cambios'}
+          </button>
         </div>
       </div>
 

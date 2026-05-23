@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireRole } from '@/lib/auth'
 import type { MaintenanceType as PrismaMaintenanceType } from '@prisma/client'
 
 type Params = { params: Promise<{ id: string }> }
@@ -14,6 +15,10 @@ const MAINTENANCE_TYPE_MAP: Record<string, PrismaMaintenanceType> = {
 
 // POST /api/assets/:id/maintenance — create a maintenance record
 export async function POST(req: NextRequest, { params }: Params) {
+  const auth = await requireRole(req, ['SUPER_ADMIN', 'ADMIN', 'TECHNICIAN'])
+  if (auth instanceof Response) return auth
+  const { user: actor } = auth
+
   const { id } = await params
   const assetId = parseInt(id)
 
@@ -61,7 +66,7 @@ export async function POST(req: NextRequest, { params }: Params) {
             type:        'MAINTENANCE',
             description: `Mantenimiento ${tipo} iniciado: ${descripcion}`,
             assetId,
-            userId: realizadoPorId ? parseInt(realizadoPorId) : null,
+            userId: actor.id,
           },
         })
       })
@@ -83,7 +88,7 @@ export async function POST(req: NextRequest, { params }: Params) {
           type:        'MAINTENANCE',
           description: `Mantenimiento ${tipo} programado: ${descripcion}`,
           assetId,
-          userId: realizadoPorId ? parseInt(realizadoPorId) : null,
+          userId: actor.id,
         },
       })
     }
@@ -108,6 +113,10 @@ export async function POST(req: NextRequest, { params }: Params) {
 
 // PATCH /api/assets/:id/maintenance — Complete or Cancel an active maintenance record
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const auth = await requireRole(req, ['SUPER_ADMIN', 'ADMIN', 'TECHNICIAN'])
+  if (auth instanceof Response) return auth
+  const { user: actor } = auth
+
   const { id } = await params
   const assetId = parseInt(id)
 
@@ -140,6 +149,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
           type: 'MAINTENANCE',
           description: `[Progreso de mantenimiento] ${notaTrimmed}`,
           assetId,
+          userId: actor.id,
         },
       })
       return NextResponse.json({ ok: true })
@@ -167,6 +177,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
             type:        'STATUS_CHANGED',
             description: 'Mantenimiento completado. Activo restaurado a estado OPERATIVO.',
             assetId,
+            userId: actor.id,
           },
         })
       })
@@ -188,6 +199,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
             type:        'MAINTENANCE',
             description: 'Mantenimiento cancelado. Activo restaurado a estado OPERATIVO.',
             assetId,
+            userId: actor.id,
           },
         })
       })

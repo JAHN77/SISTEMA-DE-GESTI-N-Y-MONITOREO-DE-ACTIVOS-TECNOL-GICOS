@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireRole } from '@/lib/auth';
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const auth = await requireRole(req, ['SUPER_ADMIN', 'ADMIN']);
+  if (auth instanceof Response) return auth;
+  const { user: actor } = auth;
+
   const { id } = await params;
 
   try {
-    const { accion, aprobadoPorId } = await req.json();
+    const { accion } = await req.json();
 
     const action = accion === 'APROBADO' ? 'APPROVED' : accion === 'RECHAZADO' ? 'REJECTED' : null;
     
@@ -28,7 +33,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       where: { id: parseInt(id) },
       data: {
         status: action,
-        approvedById: aprobadoPorId ? parseInt(aprobadoPorId) : null,
+        approvedById: actor.id,
       },
     });
 
@@ -43,7 +48,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
           type: 'LOCATION_CHANGED',
           description: `Activo reubicado a "${movement.destination?.name ?? '—'}". Solicitud aprobada.`,
           assetId: movement.assetId,
-          userId: aprobadoPorId ? parseInt(aprobadoPorId) : null,
+          userId: actor.id,
         },
       });
     } else {
@@ -52,7 +57,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
           type: 'STATUS_CHANGED',
           description: 'Solicitud de movimiento rechazada.',
           assetId: movement.assetId,
-          userId: aprobadoPorId ? parseInt(aprobadoPorId) : null,
+          userId: actor.id,
         },
       });
     }

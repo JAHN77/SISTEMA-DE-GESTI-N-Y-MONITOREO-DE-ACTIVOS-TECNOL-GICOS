@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireRole, getUserFromRequest } from '@/lib/auth'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const user = await getUserFromRequest(req)
+  if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 })
   try {
     const movements = await prisma.movementRequest.findMany({
       include: {
@@ -38,11 +41,15 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  try {
-    const { assetId, motivo, nuevaLocationId, solicitadoPorId } = await req.json()
+  const auth = await requireRole(req, ['SUPER_ADMIN', 'ADMIN', 'TECHNICIAN', 'USER', 'AUDITOR'])
+  if (auth instanceof Response) return auth
+  const { user: actor } = auth
 
-    if (!assetId || !motivo || !nuevaLocationId || !solicitadoPorId) {
-      return NextResponse.json({ error: 'assetId, motivo, nuevaLocationId y solicitadoPorId son requeridos' }, { status: 400 })
+  try {
+    const { assetId, motivo, nuevaLocationId } = await req.json()
+
+    if (!assetId || !motivo || !nuevaLocationId) {
+      return NextResponse.json({ error: 'assetId, motivo y nuevaLocationId son requeridos' }, { status: 400 })
     }
 
     const movement = await prisma.movementRequest.create({
@@ -50,7 +57,7 @@ export async function POST(req: NextRequest) {
         assetId: parseInt(assetId),
         reason: motivo,
         destinationId: parseInt(nuevaLocationId),
-        requestedById: parseInt(solicitadoPorId),
+        requestedById: actor.id,
       },
       include: {
         asset: { include: { location: true } },

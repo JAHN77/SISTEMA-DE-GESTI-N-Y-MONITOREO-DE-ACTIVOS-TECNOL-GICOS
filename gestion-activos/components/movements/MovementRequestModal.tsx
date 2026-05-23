@@ -41,8 +41,7 @@ export default function MovementRequestModal({ asset, onClose, onSuccess }: Prop
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          assetId:        asset.id,
-          requestedById:  1, // TODO: from auth session
+          assetId:         asset.id,
           nuevaLocationId: parseInt(newLocationId),
           motivo,
         }),

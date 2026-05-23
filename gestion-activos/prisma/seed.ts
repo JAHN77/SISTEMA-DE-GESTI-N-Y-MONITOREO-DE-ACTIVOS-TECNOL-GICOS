@@ -67,11 +67,16 @@ async function main() {
     create: { name: 'Andrés Gómez', email: 'agomez@itam.local', password: hashPassword('User123!'), role: Role.USER, department: 'Ventas' },
   })
   await prisma.user.upsert({
+    where:  { email: 'user@itam.local' },
+    update: { password: hashPassword('User123!') },
+    create: { name: 'Usuario Demo', email: 'user@itam.local', password: hashPassword('User123!'), role: Role.USER, department: 'General' },
+  })
+  await prisma.user.upsert({
     where:  { email: 'auditor@itam.local' },
     update: { password: hashPassword('Audit123!') },
     create: { name: 'Sandra Auditora', email: 'auditor@itam.local', password: hashPassword('Audit123!'), role: Role.AUDITOR, department: 'Auditoría Interna' },
   })
-  console.log('✅  Usuarios (8) creados')
+  console.log('✅  Usuarios (9) creados')
 
   // ══════════════════════════════════════════════════════
   //  2. UBICACIONES — árbol jerárquico
@@ -516,6 +521,7 @@ async function main() {
   console.log('  jperez@itam.local      / User123!   → Usuario (Contabilidad)')
   console.log('  mlopez@itam.local      / User123!   → Usuaria (RRHH)')
   console.log('  agomez@itam.local      / User123!   → Usuario (Ventas)')
+  console.log('  user@itam.local        / User123!   → Usuario (General)')
   console.log('  auditor@itam.local     / Audit123!  → Auditor')
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
   console.log('\n  DATOS GENERADOS:')

@@ -4,18 +4,24 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import type { MaintenanceType } from '@/types/domain'
 import { maintenanceTypeBadge, MAINTENANCE_TYPE_LABELS, formatDate, formatCurrency } from '@/lib/ui-helpers'
-import { WrenchIcon } from '@/components/icons'
+import { WrenchIcon, PlusIcon } from '@/components/icons'
+import MaintenanceCreateModal from '@/components/maintenance/MaintenanceCreateModal'
+
 export default function MaintenancePage() {
   const [records, setRecords] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [filterTipo, setFilterTipo] = useState<MaintenanceType | ''>('')
+  const [showCreate, setShowCreate] = useState(false)
 
-  useEffect(() => {
+  function loadRecords() {
+    setLoading(true)
     fetch('/api/maintenance').then(r => r.json()).then(d => {
       setRecords(Array.isArray(d) ? d : [])
       setLoading(false)
     })
-  }, [])
+  }
+
+  useEffect(() => { loadRecords() }, [])
 
   const filtered = filterTipo ? records.filter(r => r.tipo === filterTipo) : records
 
@@ -32,7 +38,21 @@ export default function MaintenancePage() {
           <h1 className="page-title">Registros de Mantenimiento</h1>
           <p className="page-subtitle">Historial de mantenimientos preventivos, correctivos y calibraciones</p>
         </div>
+        <button
+          className="btn btn-primary"
+          onClick={() => setShowCreate(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+        >
+          <PlusIcon size={14} /> Nuevo Mantenimiento
+        </button>
       </div>
+
+      {showCreate && (
+        <MaintenanceCreateModal
+          onClose={() => setShowCreate(false)}
+          onSuccess={() => { setShowCreate(false); loadRecords() }}
+        />
+      )}
 
       <div className="filters-bar">
         {(['', 'PREVENTIVO', 'CORRECTIVO', 'CALIBRACION'] as const).map(t => (

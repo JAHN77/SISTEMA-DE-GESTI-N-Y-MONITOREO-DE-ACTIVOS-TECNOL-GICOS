@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { hashPassword } from '@/lib/password'
+import { requireRole } from '@/lib/auth'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const auth = await requireRole(req, ['SUPER_ADMIN', 'ADMIN'])
+  if (auth instanceof Response) return auth
   try {
     const users = await prisma.user.findMany({
       where: { deletedAt: null },
@@ -24,6 +27,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireRole(req, ['SUPER_ADMIN', 'ADMIN'])
+  if (auth instanceof Response) return auth
+
   try {
     const { name, email, password, role, department } = await req.json()
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireRole } from '@/lib/auth'
 
 const ASSET_INCLUDE = {
   category: true,
@@ -127,6 +128,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireRole(req, ['SUPER_ADMIN', 'ADMIN', 'TECHNICIAN'])
+  if (auth instanceof Response) return auth
+  const { user: actor } = auth
+
   try {
     const body = await req.json()
     const {
@@ -157,6 +162,7 @@ export async function POST(req: NextRequest) {
           create: {
             type: 'CREATED',
             description: `Activo "${nombre}" creado en el sistema.`,
+            userId: actor.id,
           },
         },
       },

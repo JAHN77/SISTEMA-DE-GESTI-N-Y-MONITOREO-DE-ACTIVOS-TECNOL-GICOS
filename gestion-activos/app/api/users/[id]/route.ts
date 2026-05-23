@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { hashPassword } from '@/lib/password'
+import { requireRole } from '@/lib/auth'
 
 type Params = { params: Promise<{ id: string }> }
 
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const auth = await requireRole(req, ['SUPER_ADMIN', 'ADMIN'])
+  if (auth instanceof Response) return auth
+
   const { id } = await params
   try {
     const { name, role, department, password, disabled } = await req.json()
@@ -32,7 +36,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: Params) {
+export async function DELETE(req: NextRequest, { params }: Params) {
+  const auth = await requireRole(req, ['SUPER_ADMIN'])
+  if (auth instanceof Response) return auth
+
   const { id } = await params
   try {
     const existing = await prisma.user.findUnique({ where: { id: parseInt(id) } })

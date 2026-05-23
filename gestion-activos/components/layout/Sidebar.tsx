@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import type { Role } from '@/types/domain'
 import {
   DashboardIcon, PackageIcon, TruckIcon, WrenchIcon,
-  ClipboardIcon, UsersIcon, SettingsIcon,
+  ClipboardIcon, UsersIcon, SettingsIcon, CheckCircleIcon, FilterIcon,
 } from '@/components/icons'
 
 interface NavItem {
@@ -18,11 +18,13 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard',     href: '/dashboard',    icon: <DashboardIcon size={18} />,  roles: ['SUPER_ADMIN', 'ADMIN', 'TECHNICIAN', 'USER', 'AUDITOR'] },
   { label: 'Activos',       href: '/assets',       icon: <PackageIcon size={18} />,    roles: ['SUPER_ADMIN', 'ADMIN', 'TECHNICIAN', 'USER', 'AUDITOR'] },
-  { label: 'Movimientos',   href: '/movements',    icon: <TruckIcon size={18} />,      roles: ['SUPER_ADMIN', 'ADMIN', 'TECHNICIAN', 'USER'] },
-  { label: 'Mantenimiento', href: '/maintenance',  icon: <WrenchIcon size={18} />,     roles: ['SUPER_ADMIN', 'ADMIN', 'TECHNICIAN'] },
+  { label: 'Movimientos',   href: '/movements',    icon: <TruckIcon size={18} />,        roles: ['SUPER_ADMIN', 'ADMIN', 'TECHNICIAN', 'USER'] },
+  { label: 'Asignaciones',  href: '/assignments',  icon: <CheckCircleIcon size={18} />,  roles: ['SUPER_ADMIN', 'ADMIN', 'TECHNICIAN'] },
+  { label: 'Mantenimiento', href: '/maintenance',  icon: <WrenchIcon size={18} />,       roles: ['SUPER_ADMIN', 'ADMIN', 'TECHNICIAN'] },
   { label: 'Bitácora',      href: '/logs',         icon: <ClipboardIcon size={18} />,  roles: ['SUPER_ADMIN', 'ADMIN', 'TECHNICIAN', 'AUDITOR'] },
-  { label: 'Usuarios',      href: '/users',        icon: <UsersIcon size={18} />,      roles: ['SUPER_ADMIN', 'ADMIN'] },
-  { label: 'Configuración', href: '/settings',     icon: <SettingsIcon size={18} />,   roles: ['SUPER_ADMIN', 'ADMIN'] },
+  { label: 'Reportes',      href: '/reports',      icon: <FilterIcon size={18} />,       roles: ['SUPER_ADMIN', 'ADMIN', 'AUDITOR'] },
+  { label: 'Usuarios',      href: '/users',        icon: <UsersIcon size={18} />,        roles: ['SUPER_ADMIN', 'ADMIN'] },
+  { label: 'Configuración', href: '/settings',     icon: <SettingsIcon size={18} />,     roles: ['SUPER_ADMIN', 'ADMIN'] },
 ]
 
 interface SidebarProps {
