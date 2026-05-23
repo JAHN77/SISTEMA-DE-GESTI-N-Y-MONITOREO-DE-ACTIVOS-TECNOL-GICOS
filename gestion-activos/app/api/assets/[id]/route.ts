@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireRole } from '@/lib/auth'
+import { createNotification } from '@/lib/notifications'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -7,13 +9,90 @@ const ASSET_INCLUDE = {
   category: true,
   location: true,
   spec: true,
-  assignments: { include: { user: true, asignadoPor: true }, orderBy: { fechaInicio: 'desc' as const } },
-  maintenances: { include: { realizadoPor: true }, orderBy: { fechaInicio: 'desc' as const } },
-  logs: { include: { user: true }, orderBy: { fecha: 'desc' as const } },
+  assignments: { include: { user: true, createdBy: true }, orderBy: { startDate: 'desc' as const } },
+  maintenances: { include: { handledBy: true }, orderBy: { scheduledAt: 'desc' as const } },
+  logs: { include: { user: true }, orderBy: { occurredAt: 'desc' as const } },
   requests: {
-    include: { requestedBy: true, approvedBy: true, nuevaLocation: true },
+    include: { requestedBy: true, approvedBy: true, destination: true },
     orderBy: { createdAt: 'desc' as const },
   },
+}
+
+// Spec field mapping (Spanish form keys ↔ Prisma English keys)
+function mapSpecToDb(spec: Record<string, any>) {
+  const { marca, modelo, almacenamiento, sistemaOperativo, versionSO, ...rest } = spec
+  return {
+    ...(marca             !== undefined && { brand: marca }),
+    ...(modelo            !== undefined && { model: modelo }),
+    ...(almacenamiento    !== undefined && { storage: almacenamiento }),
+    ...(sistemaOperativo  !== undefined && { operatingSystem: sistemaOperativo }),
+    ...(versionSO         !== undefined && { osVersion: versionSO }),
+    ...rest,
+  }
+}
+
+function mapSpecFromDb(spec: Record<string, any> | null) {
+  if (!spec) return null
+  const { brand, model, storage, operatingSystem, osVersion, ...rest } = spec
+  return {
+    ...rest,
+    marca: brand,
+    modelo: model,
+    almacenamiento: storage,
+    sistemaOperativo: operatingSystem,
+    versionSO: osVersion,
+  }
+}
+
+// DB → Spanish translations
+const techStatusES: Record<string, string> = {
+  OPERATIONAL:       'OPERATIVO',
+  DAMAGED:           'DANADO',
+  UNDER_MAINTENANCE: 'EN_MANTENIMIENTO',
+  UNDER_REPAIR:      'EN_REPARACION',
+  OUT_OF_SERVICE:    'FUERA_DE_SERVICIO',
+  DECOMMISSIONED:    'DE_BAJA',
+  IN_TRANSIT:        'EN_TRANSITO',
+  REACTIVATED:       'REACTIVADO',
+}
+const usageStatusES: Record<string, string> = {
+  AVAILABLE:   'DISPONIBLE',
+  ASSIGNED:    'ASIGNADO',
+  RESERVED:    'RESERVADO',
+  UNAVAILABLE: 'NO_DISPONIBLE',
+  ON_LOAN:     'PRESTADO',
+}
+const eventTypeES: Record<string, string> = {
+  CREATED:          'CREACION',
+  UPDATED:          'ACTUALIZACION',
+  STATUS_CHANGED:   'CAMBIO_ESTADO',
+  ASSIGNED:         'ASIGNACION',
+  UNASSIGNED:       'DESASIGNACION',
+  MAINTENANCE:      'MANTENIMIENTO',
+  CATEGORY_CHANGED: 'CAMBIO_CATEGORIA',
+  LOCATION_CHANGED: 'CAMBIO_UBICACION',
+  DECOMMISSIONED:   'DESBILITADO',
+  REACTIVATED:      'REACTIVADO',
+  LOANED:           'PRESTAMO',
+  RETURNED:         'DEVOLUCION',
+}
+// Spanish → DB (for write operations)
+const statusMap: Record<string, string> = {
+  OPERATIVO:        'OPERATIONAL',
+  EN_MANTENIMIENTO: 'UNDER_MAINTENANCE',
+  EN_REPARACION:    'UNDER_REPAIR',
+  DANADO:           'DAMAGED',
+  FUERA_DE_SERVICIO:'OUT_OF_SERVICE',
+  DE_BAJA:          'DECOMMISSIONED',
+  EN_TRANSITO:      'IN_TRANSIT',
+  REACTIVADO:       'REACTIVATED',
+}
+const usageMap: Record<string, string> = {
+  DISPONIBLE:    'AVAILABLE',
+  ASIGNADO:      'ASSIGNED',
+  RESERVADO:     'RESERVED',
+  NO_DISPONIBLE: 'UNAVAILABLE',
+  PRESTADO:      'ON_LOAN',
 }
 
 export async function GET(_req: NextRequest, { params }: Params) {
@@ -22,9 +101,32 @@ export async function GET(_req: NextRequest, { params }: Params) {
     const asset = await prisma.asset.findUnique({
       where: { id: parseInt(id), deletedAt: null },
       include: ASSET_INCLUDE,
-    })
+    }) as any
     if (!asset) return NextResponse.json({ error: 'Activo no encontrado' }, { status: 404 })
-    return NextResponse.json(asset)
+
+    const mappedAsset = {
+      ...asset,
+      nombre: asset.name,
+      codigoInventario: asset.inventoryCode,
+      serial: asset.serialNumber,
+      estadoTecnico: techStatusES[asset.technicalStatus] ?? asset.technicalStatus,
+      estadoUso: usageStatusES[asset.usageStatus] ?? asset.usageStatus,
+      spec: mapSpecFromDb(asset.spec as any),
+      category: asset.category
+        ? { ...asset.category, nombre: asset.category.name, descripcion: asset.category.description }
+        : null,
+      location: asset.location
+        ? { ...asset.location, nombre: asset.location.name, descripcion: asset.location.description }
+        : null,
+      logs: asset.logs?.map((l: any) => ({
+        ...l,
+        tipo: eventTypeES[l.type] ?? l.type,
+        fecha: l.occurredAt,
+        descripcion: l.description,
+      })),
+    }
+
+    return NextResponse.json(mappedAsset)
   } catch (error) {
     console.error('[GET /api/assets/:id]', error)
     return NextResponse.json({ error: 'Error al obtener activo' }, { status: 500 })
@@ -32,38 +134,45 @@ export async function GET(_req: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const auth = await requireRole(req, ['SUPER_ADMIN', 'ADMIN', 'TECHNICIAN'])
+  if (auth instanceof Response) return auth
+  const { user: actor } = auth
+
   const { id } = await params
   try {
     const body = await req.json()
-    const { nombre, serial, estadoTecnico, estadoUso, imageUrl, categoryId, locationId, spec, userId } = body
+    const { nombre, serial, estadoTecnico, estadoUso, imageUrl, categoryId, locationId, spec } = body
 
     const existing = await prisma.asset.findUnique({ where: { id: parseInt(id), deletedAt: null } })
     if (!existing) return NextResponse.json({ error: 'Activo no encontrado' }, { status: 404 })
 
+    const newTechStatus = estadoTecnico ? statusMap[estadoTecnico] : undefined;
+    const newUsageStatus = estadoUso ? usageMap[estadoUso] : undefined;
+
     // Detect state change for EventLog
-    const stateChanged = estadoTecnico && estadoTecnico !== existing.estadoTecnico
+    const stateChanged = newTechStatus && newTechStatus !== existing.technicalStatus
 
     const asset = await prisma.asset.update({
       where: { id: parseInt(id) },
       data: {
-        ...(nombre        && { nombre }),
-        ...(serial        !== undefined && { serial }),
-        ...(estadoTecnico && { estadoTecnico }),
-        ...(estadoUso     && { estadoUso }),
+        ...(nombre        && { name: nombre }),
+        ...(serial        !== undefined && { serialNumber: serial }),
+        ...(newTechStatus && { technicalStatus: newTechStatus }),
+        ...(newUsageStatus && { usageStatus: newUsageStatus }),
         ...(imageUrl      !== undefined && { imageUrl }),
         ...(categoryId    && { categoryId: parseInt(categoryId) }),
         ...(locationId    && { locationId: parseInt(locationId) }),
         ...(spec && {
-          spec: { upsert: { create: spec, update: spec } },
+          spec: { upsert: { create: mapSpecToDb(spec), update: mapSpecToDb(spec) } },
         }),
         logs: {
           create: [
             {
-              tipo: stateChanged ? 'CAMBIO_ESTADO' : 'ACTUALIZACION',
-              descripcion: stateChanged
-                ? `Estado técnico cambiado de ${existing.estadoTecnico} a ${estadoTecnico}.`
-                : `Activo "${existing.nombre}" actualizado.`,
-              ...(userId && { userId: parseInt(userId) }),
+              type: stateChanged ? 'STATUS_CHANGED' : 'UPDATED',
+              description: stateChanged
+                ? `Estado técnico cambiado a ${estadoTecnico}.`
+                : `Activo actualizado.`,
+              userId: actor.id,
             },
           ],
         },
@@ -71,7 +180,37 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       include: ASSET_INCLUDE,
     })
 
-    return NextResponse.json(asset)
+    // Notify assigned user when asset enters a critical state
+    const criticalStates = ['DANADO', 'FUERA_DE_SERVICIO', 'DE_BAJA']
+    if (stateChanged && estadoTecnico && criticalStates.includes(estadoTecnico)) {
+      const activeAssignment = await prisma.assetAssignment.findFirst({
+        where: { assetId: parseInt(id), endDate: null },
+        select: { userId: true },
+      })
+      if (activeAssignment) {
+        await createNotification({
+          userId: activeAssignment.userId,
+          type: 'ASSET_DECOMMISSIONED',
+          title: 'Activo fuera de servicio',
+          message: `El activo "${existing.name}" cambió de estado a ${estadoTecnico.replace(/_/g, ' ')}.`,
+          url: `/assets/${id}`,
+          referenceId: parseInt(id),
+          referenceType: 'Asset',
+        })
+      }
+    }
+
+    const mappedAsset = {
+      ...asset,
+      nombre: asset.name,
+      codigoInventario: asset.inventoryCode,
+      serial: asset.serialNumber,
+      estadoTecnico: techStatusES[asset.technicalStatus] ?? asset.technicalStatus,
+      estadoUso: usageStatusES[asset.usageStatus] ?? asset.usageStatus,
+      spec: mapSpecFromDb(asset.spec as any),
+    }
+
+    return NextResponse.json(mappedAsset)
   } catch (error: any) {
     console.error('[PATCH /api/assets/:id]', error)
     if (error.code === 'P2002') {
@@ -81,7 +220,11 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: Params) {
+export async function DELETE(req: NextRequest, { params }: Params) {
+  const auth = await requireRole(req, ['SUPER_ADMIN', 'ADMIN'])
+  if (auth instanceof Response) return auth
+  const { user: actor } = auth
+
   const { id } = await params
   try {
     const existing = await prisma.asset.findUnique({ where: { id: parseInt(id), deletedAt: null } })
@@ -94,8 +237,9 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
         deletedAt: new Date(),
         logs: {
           create: {
-            tipo: 'CAMBIO_ESTADO',
-            descripcion: `Activo "${existing.nombre}" marcado como eliminado (soft delete).`,
+            type: 'STATUS_CHANGED',
+            description: `Activo "${existing.name}" marcado como eliminado (soft delete).`,
+            userId: actor.id,
           },
         },
       },

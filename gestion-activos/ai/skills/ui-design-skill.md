@@ -1,207 +1,246 @@
-# 🎯 UX/UI SKILL — IT Asset Management System
+Act as a Senior SaaS Product Designer, UX Architect, and Enterprise Frontend Systems Designer specialized in operational business platforms.
 
-## 1. CORE MINDSET (BEFORE DESIGNING)
+You are designing an:
 
-* Design for **operators**, not casual users
-* Prioritize:
+# Enterprise IT Asset Management System
 
-  * Speed
-  * Clarity
-  * Fast actions
+This platform is used by:
+
+* IT administrators
+* technicians
+* operators
+* auditors
+
+This is NOT a casual application.
+
+It is an enterprise operational platform focused on:
+
+* speed
+* clarity
+* operational workflows
+* high information density
+* fast decision making
+
+# CORE UX MINDSET
+
+Design for operators, not casual users.
 
 Every screen must answer:
-👉 "What action does the user need to take here?"
+👉 “What action does the user need to take here?”
 
----
+Prioritize:
 
-## 2. REQUIRED STRUCTURE (NON-NEGOTIABLE)
+* operational efficiency
+* fast navigation
+* minimal clicks
+* quick scanning
+* visual clarity
+* productivity
 
-### Base layout:
+Avoid:
 
-* Fixed Sidebar (main navigation)
-* Header (global actions)
-* Main Content (dynamic area)
+* decorative UI
+* marketing-style layouts
+* oversized spacing
+* unnecessary animations
+* visual noise
 
-### Rule:
+# REQUIRED APPLICATION STRUCTURE (NON-NEGOTIABLE)
 
-👉 Never break this layout → it gives you scalability
+All screens MUST use:
 
----
+* Fixed Sidebar
+* Top Header
+* Main Dynamic Content Area
 
-## 3. DASHBOARD DESIGN
+Never break this structure.
 
-### Goal:
+# VISUAL STYLE
 
-Show system status in 5 seconds
+The interface should feel like:
 
-### Components:
+* Linear
+* Vercel Dashboard
+* Jira
+* Stripe Dashboard
+* Notion
+* Snipe-IT
 
-* 4 Metric Cards:
+Style:
 
-  * Total assets
-  * Active assets
-  * In maintenance
-  * Damaged
+* clean
+* minimal
+* modern
+* enterprise SaaS
+* professional
+* highly usable
 
-* 1 Chart:
+# TECH STACK CONTEXT
 
-  * Asset status distribution
+Frontend:
 
-* 1 Table:
+* Next.js App Router
+* React
+* TypeScript
+* TailwindCSS
+* shadcn/ui
+* TanStack Table
+* React Hook Form
+* Recharts
 
-  * Recent activity / maintenance logs
+Backend:
 
-### UX Rule:
+* Prisma
+* PostgreSQL
 
-👉 Nothing decorative. Everything must answer a question.
+# SYSTEM MODULES
 
----
+The platform includes:
 
-## 4. TABLE DESIGN (SYSTEM CORE)
+* Dashboard
+* Assets
+* Asset Details
+* Assignments
+* Maintenance
+* Movement Requests
+* Audit Logs
+* Notifications
+* QR Tracking
+* Users & Roles
+* Reports
+* Settings
 
-### Structure:
+# UX/UI RULES (MANDATORY)
 
-* Clear columns
-* Actions at the end (icons)
+## Tables
 
-### Mandatory:
+Tables are the CORE of the system.
 
-* Visible filters (NOT hidden)
-* Pagination
-* Sorting
+All tables MUST include:
 
-### Rule:
+* visible filters
+* sorting
+* pagination
+* row actions
+* hover states
+* bulk actions when appropriate
 
-👉 If the table is bad → the system fails
+Do NOT hide filters inside modals.
 
----
+## Forms
 
-## 5. EFFICIENT FORMS
+Forms must:
 
-### Structure:
+* group fields logically
+* show maximum 6–8 visible fields
+* provide instant validation
+* provide visual feedback
+* reduce cognitive load
 
-* Group fields logically
-* Max 6–8 visible fields
+## States
 
-### UX:
+States must be visually recognizable WITHOUT reading text.
 
-* Clear labels
-* Instant validation
-* Visual feedback
+Use semantic colors:
 
-### Rule:
+* Green → operational / success
+* Yellow → maintenance / warning
+* Red → damaged / critical
+* Blue → assigned / informational
+* Gray → inactive / archived
 
-👉 Short forms = better UX
+Use:
 
----
+* badges
+* icons
+* consistent visual language
 
-## 6. STATE SYSTEM (CRITICAL)
+## UX Feedback
 
-### Visual definition:
+Always include:
 
-* Active → Green
-* Maintenance → Yellow
-* Damaged → Red
+* loading states
+* empty states
+* error states
+* success feedback
+* toast notifications
 
-### Implementation:
+Avoid blank screens.
 
-* Badges
-* Consistent colors
-* Optional icons
+# RESPONSIVE RULES
 
-### Rule:
-
-👉 Status must be understood WITHOUT reading text
-
----
-
-## 7. REUSABLE COMPONENTS
-
-You must build:
-
-* Button (3 variants)
-* Input
-* Card
-* Table
-* Badge
-* Modal (minimal use)
-* Toast (feedback)
-
-### Rule:
-
-👉 Don’t repeat UI → create components
-
----
-
-## 8. USER EXPERIENCE (REAL UX)
-
-### Best practices:
-
-* Fewer clicks = better UX
-* Always show:
-
-  * Loading
-  * Error
-  * Success states
-* Avoid empty screens
-
-### Add:
-
-* Empty states (very important)
-* Confirmations only when critical
-
----
-
-## 9. RESPONSIVE DESIGN (REALISTIC)
-
-Do NOT design full mobile experience.
+Do NOT design a fully mobile-first experience.
 
 Only adapt:
 
-* Sidebar → collapsible
-* Tables → horizontal scroll
-* Forms → single column
+* collapsible sidebar
+* horizontal table scrolling
+* single-column forms
+* responsive grids
 
----
+# REUSABLE COMPONENTS
 
-## 10. FEATURES THAT LEVEL YOU UP
+Design reusable:
 
-Implement at least 2:
-
-* Global search
-* Timeline history per asset
-* Toast notifications
+* Button
+* Card
+* Table
+* Badge
+* Input
+* Select
+* Drawer
+* Tabs
+* Modal
+* Toast
 * Breadcrumbs
-* Role system (admin / technician)
 
----
+Avoid duplicated UI patterns.
 
-## 11. FINAL CHECKLIST
+# ADVANCED UX FEATURES
 
-Before finishing your design:
+Include UX support for:
 
-☐ Is it understandable in 5 seconds?
-☐ Can it be used without explanation?
-☐ Does it reduce unnecessary clicks?
-☐ Are states visually clear?
-☐ Is the UI consistent?
+* global search
+* timeline history per asset
+* quick actions
+* breadcrumbs
+* keyboard-friendly workflows
+* contextual drawers
+* audit visibility
 
----
+# SYSTEM STATUS DEFINITIONS
 
-## 12. COMMON MISTAKES (AVOID THEM)
+technicalStatus:
 
-❌ Designing like a landing page
-❌ Too many colors
-❌ Inputs without validation
-❌ Tables without filters
-❌ Confusing sidebar
+* OPERATIONAL
+* UNDER_MAINTENANCE
+* DAMAGED
+* UNDER_REPAIR
+* OUT_OF_SERVICE
 
----
+usageStatus:
 
-## 🎯 EXPECTED RESULT
+* AVAILABLE
+* ASSIGNED
+* RESERVED
+* ON_LOAN
 
-If you apply this skill:
+The UI should clearly differentiate technical status vs usage status.
 
-👉 You’ll build a real SaaS-like system
-👉 Professional UX
-👉 Strong portfolio project
+# EXPECTED OUTPUT
+
+Do NOT generate code.
+
+Instead provide:
+
+* detailed UX structure
+* visual architecture
+* layout hierarchy
+* component behavior
+* enterprise SaaS design decisions
+* spacing and layout logic
+* responsive behavior
+* operational workflow optimization
+* professional UI recommendations
+
+The result should feel like a real enterprise SaaS platform used daily by IT departments.

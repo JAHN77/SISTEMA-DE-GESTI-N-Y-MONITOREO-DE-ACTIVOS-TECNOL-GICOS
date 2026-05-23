@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import type { Category, EstadoTecnico, EstadoUso, Location } from '@/types/domain'
 import { ESTADO_TECNICO_LABELS, ESTADO_USO_LABELS } from '@/lib/ui-helpers'
 import { useToast } from '@/components/ui/ToastProvider'
+import { EditIcon, ClipboardIcon, InfoIcon, WrenchIcon, SaveIcon } from '@/components/icons'
 
 interface AssetFormData {
   // Step 1 — Basic info
@@ -151,14 +152,14 @@ export default function AssetFormPage({ mode = 'create' }: { mode?: 'create' | '
 
       <div className="page-header">
         <div>
-          <h1 className="page-title">{isEdit ? '✏️ Editar Activo' : '+ Nuevo Activo'}</h1>
+          <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{isEdit ? <><EditIcon size={20} /> Editar Activo</> : '+ Nuevo Activo'}</h1>
           <p className="page-subtitle">{isEdit ? 'Actualiza la información del activo' : 'Registra un nuevo activo tecnológico en el sistema'}</p>
         </div>
       </div>
 
       {/* ── SECTION 1: Basic Info ── */}
       <div className="form-section">
-        <div className="form-section-title">📋 Información Básica</div>
+        <div className="form-section-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}><ClipboardIcon size={14} /> Información Básica</div>
         <div className="form-row form-row-2">
           <div className="form-group">
             <label className="form-label" htmlFor="input-nombre">Nombre del Activo <span className="required">*</span></label>
@@ -224,7 +225,7 @@ export default function AssetFormPage({ mode = 'create' }: { mode?: 'create' | '
 
         {form.estadoTecnico !== 'OPERATIVO' && (
           <div style={{ padding: '10px 14px', background: 'rgba(245,158,11,0.08)', borderRadius: 8, fontSize: 12, color: 'var(--color-mantenimiento)', border: '1px solid rgba(245,158,11,0.2)', marginTop: 4 }}>
-            ℹ️ Al guardar, se registrará automáticamente un EventLog de <strong>CAMBIO_ESTADO</strong> en la bitácora del activo.
+            <InfoIcon size={12} style={{ flexShrink: 0, display: 'inline', marginRight: 4 }} /> Al guardar, se registrará automáticamente un EventLog de <strong>CAMBIO_ESTADO</strong> en la bitácora del activo.
           </div>
         )}
       </div>
@@ -232,8 +233,8 @@ export default function AssetFormPage({ mode = 'create' }: { mode?: 'create' | '
       {/* ── SECTION 3: Specs (collapsible) ── */}
       <div className="form-section">
         <div className="collapsible-header" onClick={() => setSpecsOpen(o => !o)}>
-          <div className="form-section-title" style={{ marginBottom: 0 }}>
-            💻 Especificaciones Técnicas
+          <div className="form-section-title" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <WrenchIcon size={14} /> Especificaciones Técnicas
             <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--color-text-muted)', marginLeft: 8 }}>(Opcional)</span>
           </div>
           <span style={{ color: 'var(--color-text-secondary)', fontSize: 18, lineHeight: 1 }}>{specsOpen ? '−' : '+'}</span>
@@ -309,7 +310,9 @@ export default function AssetFormPage({ mode = 'create' }: { mode?: 'create' | '
         >
           {loading ? (
             <><span className="loading-spinner" style={{ width: 14, height: 14 }} /> Guardando...</>
-          ) : (isEdit ? '💾 Actualizar Activo' : '+ Crear Activo')}
+          ) : isEdit
+            ? <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><SaveIcon size={14} /> Actualizar Activo</span>
+            : '+ Crear Activo'}
         </button>
         <Link href={id ? `/assets/${id}` : '/assets'} className="btn btn-secondary">Cancelar</Link>
       </div>

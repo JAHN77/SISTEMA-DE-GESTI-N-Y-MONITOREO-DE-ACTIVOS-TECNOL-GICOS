@@ -1,67 +1,95 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { requireRole } from '@/lib/auth';
+import { createNotification } from '@/lib/notifications';
 
-type Params = { params: Promise<{ id: string }> }
+type Params = { params: Promise<{ id: string }> };
 
-// PATCH /api/movements/:id — approve or reject
-// Only ADMIN can do this (validated client-side by role; add server auth later)
 export async function PATCH(req: NextRequest, { params }: Params) {
-  const { id } = await params
+  const auth = await requireRole(req, ['SUPER_ADMIN', 'ADMIN']);
+  if (auth instanceof Response) return auth;
+  const { user: actor } = auth;
+
+  const { id } = await params;
 
   try {
-    const { action, approvedById } = await req.json()
+    const { accion } = await req.json();
 
-    if (!['APPROVED', 'REJECTED'].includes(action)) {
-      return NextResponse.json({ error: 'action debe ser APPROVED o REJECTED' }, { status: 400 })
+    const action = accion === 'APROBADO' ? 'APPROVED' : accion === 'RECHAZADO' ? 'REJECTED' : null;
+    
+    if (!action) {
+      return NextResponse.json({ error: 'accion debe ser APROBADO o RECHAZADO' }, { status: 400 });
     }
 
     const movement = await prisma.movementRequest.findUnique({
       where: { id: parseInt(id) },
-      include: { asset: true, nuevaLocation: true },
-    })
-    if (!movement) return NextResponse.json({ error: 'Solicitud no encontrada' }, { status: 404 })
+      include: { asset: true, destination: true },
+    });
+    if (!movement) return NextResponse.json({ error: 'Solicitud de movimiento no encontrada' }, { status: 404 });
     if (movement.status !== 'PENDING') {
-      return NextResponse.json({ error: 'Solo se pueden procesar solicitudes PENDING' }, { status: 409 })
+      return NextResponse.json({ error: 'Solo las solicitudes PENDIENTES pueden ser procesadas' }, { status: 409 });
     }
 
-    // Update the movement request
     const updated = await prisma.movementRequest.update({
       where: { id: parseInt(id) },
       data: {
-        status:      action,
-        approvedById: approvedById ? parseInt(approvedById) : null,
+        status: action,
+        approvedById: actor.id,
       },
-    })
+    });
 
-    // If APPROVED: update asset location + log CAMBIO_UBICACION
-    if (action === 'APPROVED' && movement.nuevaLocationId) {
+    if (action === 'APPROVED' && movement.destinationId) {
       await prisma.asset.update({
         where: { id: movement.assetId },
-        data:  { locationId: movement.nuevaLocationId },
-      })
+        data: { locationId: movement.destinationId },
+      });
 
       await prisma.eventLog.create({
         data: {
-          tipo: 'CAMBIO_UBICACION',
-          descripcion: `Activo trasladado a "${movement.nuevaLocation?.nombre ?? '—'}". Solicitud aprobada.`,
+          type: 'LOCATION_CHANGED',
+          description: `Activo reubicado a "${movement.destination?.name ?? '—'}". Solicitud aprobada.`,
           assetId: movement.assetId,
-          userId:  approvedById ? parseInt(approvedById) : null,
+          userId: actor.id,
         },
-      })
-    } else if (action === 'REJECTED') {
+      });
+    } else {
       await prisma.eventLog.create({
         data: {
-          tipo: 'CAMBIO_ESTADO',
-          descripcion: `Solicitud de movimiento rechazada.`,
+          type: 'STATUS_CHANGED',
+          description: 'Solicitud de movimiento rechazada.',
           assetId: movement.assetId,
-          userId:  approvedById ? parseInt(approvedById) : null,
+          userId: actor.id,
         },
+      });
+    }
+
+    // Notify the movement requester of the decision
+    const assetName = movement.asset?.name ?? `#${movement.assetId}`
+    if (action === 'APPROVED') {
+      await createNotification({
+        userId: movement.requestedById,
+        type: 'REQUEST_APPROVED',
+        title: 'Movimiento aprobado',
+        message: `Tu solicitud de movimiento para "${assetName}" fue aprobada.`,
+        url: `/assets/${movement.assetId}`,
+        referenceId: movement.id,
+        referenceType: 'MovementRequest',
+      })
+    } else {
+      await createNotification({
+        userId: movement.requestedById,
+        type: 'REQUEST_REJECTED',
+        title: 'Movimiento rechazado',
+        message: `Tu solicitud de movimiento para "${assetName}" fue rechazada.`,
+        url: '/movements',
+        referenceId: movement.id,
+        referenceType: 'MovementRequest',
       })
     }
 
-    return NextResponse.json(updated)
+    return NextResponse.json(updated);
   } catch (error) {
-    console.error('[PATCH /api/movements/:id]', error)
-    return NextResponse.json({ error: 'Error al procesar solicitud' }, { status: 500 })
+    console.error('[PATCH /api/movements/:id]', error);
+    return NextResponse.json({ error: 'Error al procesar solicitud de movimiento' }, { status: 500 });
   }
 }

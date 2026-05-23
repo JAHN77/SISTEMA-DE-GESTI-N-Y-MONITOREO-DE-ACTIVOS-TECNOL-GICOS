@@ -7,7 +7,8 @@ export async function GET() {
       include: { children: true },
       orderBy: { name: 'asc' },
     })
-    return NextResponse.json(categories)
+    const mapped = categories.map(c => ({ ...c, nombre: c.name, descripcion: c.description }));
+    return NextResponse.json(mapped)
   } catch (error) {
     return NextResponse.json({ error: 'Error al obtener categorías' }, { status: 500 })
   }

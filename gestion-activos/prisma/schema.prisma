@@ -5,121 +5,203 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
 //////////////////////
 // ENUMS
 //////////////////////
 
 enum Role {
+  SUPER_ADMIN
   ADMIN
   TECHNICIAN
   USER
+  AUDITOR
 }
 
-enum EstadoTecnico {
-  OPERATIVO
-  DANADO
-  EN_MANTENIMIENTO
-  EN_REPARACION
-  FUERA_DE_SERVICIO
-  DE_BAJA
+enum TechnicalStatus {
+  OPERATIONAL
+  DAMAGED
+  UNDER_MAINTENANCE
+  UNDER_REPAIR
+  OUT_OF_SERVICE
+  DECOMMISSIONED
+  IN_TRANSIT
 }
 
-enum EstadoUso {
-  DISPONIBLE
-  ASIGNADO
-  RESERVADO
-  NO_DISPONIBLE
+enum UsageStatus {
+  AVAILABLE
+  ASSIGNED
+  RESERVED
+  UNAVAILABLE
+  ON_LOAN
+}
+
+enum LocationType {
+  CAMPUS
+  BUILDING
+  FLOOR
+  AREA
+  OFFICE
+  LABORATORY
+  WAREHOUSE
+  SERVER_ROOM
+  WORKSTATION
 }
 
 enum EventType {
-  CREACION
-  ACTUALIZACION
-  CAMBIO_ESTADO
-  ASIGNACION
-  DESASIGNACION
-  MANTENIMIENTO
-  CAMBIO_CATEGORIA
-  CAMBIO_UBICACION
+  CREATED
+  UPDATED
+  STATUS_CHANGED
+  ASSIGNED
+  UNASSIGNED
+  MAINTENANCE
+  CATEGORY_CHANGED
+  LOCATION_CHANGED
+  DECOMMISSIONED
+  REACTIVATED
+  LOANED
+  RETURNED
 }
 
 enum RequestStatus {
   PENDING
   APPROVED
   REJECTED
+  CANCELLED
+  IN_PROGRESS
+  COMPLETED
 }
 
 enum MaintenanceType {
-  PREVENTIVO
-  CORRECTIVO
-  CALIBRACION
+  PREVENTIVE
+  CORRECTIVE
+  CALIBRATION
+  UPDATE
+  CLEANING
+}
+
+enum MaintenanceStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum NotificationType {
+  REQUEST_APPROVED
+  REQUEST_REJECTED
+  MAINTENANCE_DUE
+  NEW_ASSIGNMENT
+  WARRANTY_EXPIRING
+  ASSET_DECOMMISSIONED
 }
 
 //////////////////////
-// MODELOS
+// USERS
 //////////////////////
 
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  password  String
-  role      Role     @default(USER)
+  id         Int       @id @default(autoincrement())
+  name       String
+  email      String    @unique
+  password   String
+  role       Role      @default(USER)
+  avatarUrl  String?
+  phone      String?
+  department String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  assignments              AssetAssignment[]
-  asignacionesRealizadas   AssetAssignment[] @relation("AsignacionRealizada")
-  logs                     EventLog[]        @relation("UserLogs")
-  requests                 MovementRequest[] @relation("RequestUser")
-  approvals               MovementRequest[] @relation("ApproverUser")
-  maintenancesRealizados  Maintenance[]     @relation("MaintenanceRealizado")
+  assignments          AssetAssignment[]
+  assignmentsCreated   AssetAssignment[]  @relation("AssignmentCreatedBy")
+  logs                 EventLog[]         @relation("EventLogUser")
+  requests             MovementRequest[]  @relation("RequestCreatedBy")
+  approvals            MovementRequest[]  @relation("RequestApprovedBy")
+  maintenancesHandled  Maintenance[]      @relation("MaintenanceHandledBy")
+  notifications        Notification[]
+  qrScans              QRScan[]
+  labelsGenerated      AssetLabel[]       @relation("LabelGeneratedBy")
 
   @@index([role])
   @@index([deletedAt])
+  @@index([department])
 }
+
+//////////////////////
+// CATALOGS
+//////////////////////
 
 model Category {
   id          Int     @id @default(autoincrement())
   name        String  @unique
-  descripcion String?
+  slug        String  @unique
+  description String?
+  iconName    String?
+  color       String?
 
   parentId Int?
-  parent   Category?  @relation("SubCategory", fields: [parentId], references: [id])
-  children Category[] @relation("SubCategory")
+  parent   Category?  @relation("CategoryParent", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryParent")
 
   assets Asset[]
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([parentId])
+  @@index([slug])
 }
 
 model Location {
-  id          Int     @id @default(autoincrement())
-  nombre      String  @unique
-  descripcion String?
+  id          Int          @id @default(autoincrement())
+  name        String
+  type        LocationType
+  description String?
+  // Hierarchical unique code (e.g. "CUC-BQ-BA-P2-LAB-NETS")
+  code        String?      @unique
 
   parentId Int?
-  parent   Location?  @relation("SubLocation", fields: [parentId], references: [id])
-  children Location[] @relation("SubLocation")
+  parent   Location?  @relation("LocationParent", fields: [parentId], references: [id])
+  children Location[] @relation("LocationParent")
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   assets           Asset[]
-  movementRequests MovementRequest[] @relation("MovementDestino")
+  movementRequests MovementRequest[] @relation("RequestDestination")
 
+  // same name allowed only under different parents
+  @@unique([name, parentId])
   @@index([parentId])
+  @@index([type])
+  @@index([code])
 }
+
+//////////////////////
+// ASSETS
+//////////////////////
 
 model Asset {
   id Int @id @default(autoincrement())
 
-  nombre           String
-  codigoInventario String  @unique
-  serial           String? @unique
+  name             String
+  inventoryCode    String  @unique
+  // WARNING: store null, never "". Two empty strings break @unique.
+  // Validate at application layer before persisting.
+  serialNumber     String? @unique
+  // Auto-generated with nanoid(10) on asset creation.
+  // Encodes the URL: https://[domain]/qr/[qrCode]
+  qrCode           String? @unique
 
-  estadoTecnico EstadoTecnico @default(OPERATIVO)
-  estadoUso     EstadoUso     @default(DISPONIBLE)
+  technicalStatus TechnicalStatus @default(OPERATIONAL)
+  usageStatus     UsageStatus     @default(AVAILABLE)
+
+  acquisitionDate  DateTime?
+  warrantyExpiry   DateTime?
+  acquisitionValue Decimal?  @db.Decimal(12, 2)
+  currentValue     Decimal?  @db.Decimal(12, 2)
 
   imageUrl String?
 
@@ -134,34 +216,46 @@ model Asset {
   requests     MovementRequest[]
   maintenances Maintenance[]
   spec         AssetSpec?
+  qrScans      QRScan[]
+  labels       AssetLabel[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  @@index([estadoTecnico])
-  @@index([estadoUso])
+  @@index([technicalStatus])
+  @@index([usageStatus])
   @@index([categoryId])
   @@index([locationId])
+  @@index([warrantyExpiry])
+  @@index([deletedAt])
 }
 
 model AssetSpec {
   id      Int @id @default(autoincrement())
   assetId Int @unique
 
-  marca          String?
-  modelo         String?
-  cpu            String?
-  ram            String?
-  almacenamiento String?
+  // hardware
+  brand         String?
+  model         String?
+  cpu           String?
+  ram           String?
+  storage       String?
+  screenSize    String? // inches or resolution (monitors, laptops)
 
-  sistemaOperativo String?
-  versionSO        String?
+  // software
+  operatingSystem   String?
+  osVersion         String?
+  osLicense         String?
 
+  // network
   ipAddress  String?
+  // WARNING: store null, never "". Validate at application layer.
   macAddress String? @unique
   hostname   String?
+  vlan       String?
 
+  // unstructured additional specs
   data Json?
 
   asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
@@ -170,91 +264,210 @@ model AssetSpec {
   @@index([hostname])
 }
 
+//////////////////////
+// ASSIGNMENTS
+//////////////////////
+
 model AssetAssignment {
   id Int @id @default(autoincrement())
 
-  userId        Int
-  assetId       Int
-  asignadoPorId Int?
+  userId      Int
+  assetId     Int
+  createdById Int?
 
-  fechaInicio DateTime @default(now())
-  fechaFin    DateTime?
+  startDate    DateTime  @default(now())
+  endDate      DateTime?
+  reason       String?
+  notes        String?
 
-  user        User  @relation(fields: [userId], references: [id])
-  asset       Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  asignadoPor User? @relation("AsignacionRealizada", fields: [asignadoPorId], references: [id])
+  user      User  @relation(fields: [userId], references: [id])
+  asset     Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  createdBy User? @relation("AssignmentCreatedBy", fields: [createdById], references: [id])
 
   @@index([assetId])
   @@index([userId])
-  @@index([asignadoPorId])
+  @@index([createdById])
+  @@index([endDate])
+
+  // WARNING: Prisma does NOT support partial indexes natively.
+  // Run this SQL manually after the first migration:
+  //
+  // CREATE UNIQUE INDEX unique_active_assignment
+  // ON "AssetAssignment" ("assetId")
+  // WHERE "endDate" IS NULL;
+  //
+  // Ensures one asset can only have ONE active assignment at a time.
+  // NULL is not considered duplicate in PostgreSQL.
 }
+
+//////////////////////
+// AUDIT LOG
+//////////////////////
 
 model EventLog {
   id          Int       @id @default(autoincrement())
-  tipo        EventType
-  descripcion String
-  fecha       DateTime  @default(now())
+  type        EventType
+  description String
+  occurredAt  DateTime  @default(now())
 
+  // Structure: { before: { field: value }, after: { field: value } }
   metadata Json?
+
+  sourceIp   String?
+  userAgent  String?
 
   assetId Int
   userId  Int?
 
   asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  user  User? @relation("UserLogs", fields: [userId], references: [id])
+  user  User? @relation("EventLogUser", fields: [userId], references: [id])
 
-  @@index([assetId, fecha])
-  @@index([tipo])
+  @@index([assetId, occurredAt])
+  @@index([type])
+  @@index([userId])
 }
+
+//////////////////////
+// MOVEMENT REQUESTS
+//////////////////////
 
 model MovementRequest {
   id Int @id @default(autoincrement())
 
-  assetId         Int
-  requestedById   Int
-  approvedById    Int?
-  nuevaLocationId Int?
+  assetId            Int
+  requestedById      Int
+  approvedById       Int?
+  destinationId      Int?
 
-  motivo String
+  reason String
 
   status RequestStatus @default(PENDING)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  asset         Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  requestedBy   User      @relation("RequestUser", fields: [requestedById], references: [id])
-  approvedBy    User?     @relation("ApproverUser", fields: [approvedById], references: [id])
-  nuevaLocation Location? @relation("MovementDestino", fields: [nuevaLocationId], references: [id])
+  asset       Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  requestedBy User      @relation("RequestCreatedBy", fields: [requestedById], references: [id])
+  approvedBy  User?     @relation("RequestApprovedBy", fields: [approvedById], references: [id])
+  destination Location? @relation("RequestDestination", fields: [destinationId], references: [id])
 
   @@index([assetId])
   @@index([requestedById])
   @@index([status])
 }
 
+//////////////////////
+// MAINTENANCE
+//////////////////////
+
 model Maintenance {
   id Int @id @default(autoincrement())
 
-  assetId        Int
-  tipo           MaintenanceType
-  descripcion    String
+  assetId     Int
+  type        MaintenanceType
+  status      MaintenanceStatus @default(SCHEDULED)
+  description String
 
-  proveedor String?
-  costo     Decimal? @db.Decimal(12, 2)
+  provider  String?
+  cost      Decimal? @db.Decimal(12, 2)
 
-  fechaInicio DateTime
-  fechaFin    DateTime?
+  scheduledAt  DateTime
+  completedAt  DateTime?
 
-  realizadoPorId Int?
+  handledById Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  asset        Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  realizadoPor User? @relation("MaintenanceRealizado", fields: [realizadoPorId], references: [id])
+  asset     Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  handledBy User? @relation("MaintenanceHandledBy", fields: [handledById], references: [id])
 
   @@index([assetId])
-  @@index([fechaInicio])
-  @@index([tipo])
-  @@index([realizadoPorId])
+  @@index([scheduledAt])
+  @@index([type])
+  @@index([status])
+  @@index([handledById])
 }
+
+//////////////////////
+// NOTIFICATIONS
+//////////////////////
+
+model Notification {
+  id      Int              @id @default(autoincrement())
+  userId  Int
+  type    NotificationType
+  title   String
+  message String
+  read    Boolean          @default(false)
+  // Internal route on click (e.g. "/assets/42")
+  url     String?
+
+  // Generic reference to the object that triggered the notification
+  referenceId   Int?
+  referenceType String? // "Asset" | "MovementRequest" | "Maintenance"
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([createdAt])
+}
+
+//////////////////////
+// QR TRACKING
+//////////////////////
+
+model QRScan {
+  id        Int      @id @default(autoincrement())
+  assetId   Int
+  userId    Int?     // null for anonymous scans (public endpoint)
+  sourceIp  String?
+  userAgent String?
+  scannedAt DateTime @default(now())
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  user  User? @relation(fields: [userId], references: [id])
+
+  @@index([assetId])
+  @@index([scannedAt])
+}
+
+//////////////////////
+// PRINTABLE LABELS
+//////////////////////
+
+model AssetLabel {
+  id          Int      @id @default(autoincrement())
+  assetId     Int
+  // Supported formats: A4, DYMO, ZEBRA
+  format      String   @default("A4")
+  generatedBy Int?
+  createdAt   DateTime @default(now())
+
+  asset     Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  generator User? @relation("LabelGeneratedBy", fields: [generatedBy], references: [id])
+
+  @@index([assetId])
+}
+
+//////////////////////
+// PHASE 2 ROADMAP
+//////////////////////
+//
+// TODO: Report model
+//   For scheduled reports exportable as PDF/Excel.
+//   Suggested fields: id, name, type, filters (Json),
+//   frequency, lastRunAt, createdById.
+//
+// TODO: Contract model
+//   For maintenance contracts with external providers.
+//   Suggested fields: id, provider, startDate, endDate,
+//   amount (Decimal), covered assets (M-N relation with Asset).
+//
+// TODO: AssetTransfer model
+//   For formal asset transfers between locations requiring
+//   approval from both parties.
+//   Suggested fields: id, assetId, sourceId, destinationId,
+//   requestedById, approvedById, status, transferredAt.

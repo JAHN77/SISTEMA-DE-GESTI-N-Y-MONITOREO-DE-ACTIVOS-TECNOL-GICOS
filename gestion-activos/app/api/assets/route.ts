@@ -1,11 +1,84 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireRole } from '@/lib/auth'
 
 const ASSET_INCLUDE = {
   category: true,
   location: true,
   spec: true,
+  assignments: {
+    where: { endDate: null },
+    include: { user: { select: { id: true, name: true, department: true } } },
+    take: 1,
+    orderBy: { startDate: 'desc' as const },
+  },
 } as const
+
+// Spec field mapping (Spanish form keys ↔ Prisma English keys)
+function mapSpecToDb(spec: Record<string, any>) {
+  const { marca, modelo, almacenamiento, sistemaOperativo, versionSO, ...rest } = spec
+  return {
+    ...(marca             !== undefined && { brand: marca }),
+    ...(modelo            !== undefined && { model: modelo }),
+    ...(almacenamiento    !== undefined && { storage: almacenamiento }),
+    ...(sistemaOperativo  !== undefined && { operatingSystem: sistemaOperativo }),
+    ...(versionSO         !== undefined && { osVersion: versionSO }),
+    ...rest,
+  }
+}
+
+function mapSpecFromDb(spec: Record<string, any> | null) {
+  if (!spec) return null
+  const { brand, model, storage, operatingSystem, osVersion, ...rest } = spec
+  return {
+    ...rest,
+    marca: brand,
+    modelo: model,
+    almacenamiento: storage,
+    sistemaOperativo: operatingSystem,
+    versionSO: osVersion,
+  }
+}
+
+// Spanish → DB (for WHERE filters)
+const statusMap: Record<string, string> = {
+  OPERATIVO:        'OPERATIONAL',
+  EN_MANTENIMIENTO: 'UNDER_MAINTENANCE',
+  EN_REPARACION:    'UNDER_REPAIR',
+  DANADO:           'DAMAGED',
+  FUERA_DE_SERVICIO:'OUT_OF_SERVICE',
+  DE_BAJA:          'DECOMMISSIONED',
+  EN_TRANSITO:      'IN_TRANSIT',
+  REACTIVADO:       'REACTIVATED',
+}
+
+const usageMap: Record<string, string> = {
+  DISPONIBLE:    'AVAILABLE',
+  ASIGNADO:      'ASSIGNED',
+  RESERVADO:     'RESERVED',
+  NO_DISPONIBLE: 'UNAVAILABLE',
+  PRESTADO:      'ON_LOAN',
+}
+
+// DB → Spanish (for API response)
+const techStatusES: Record<string, string> = {
+  OPERATIONAL:       'OPERATIVO',
+  DAMAGED:           'DANADO',
+  UNDER_MAINTENANCE: 'EN_MANTENIMIENTO',
+  UNDER_REPAIR:      'EN_REPARACION',
+  OUT_OF_SERVICE:    'FUERA_DE_SERVICIO',
+  DECOMMISSIONED:    'DE_BAJA',
+  IN_TRANSIT:        'EN_TRANSITO',
+  REACTIVATED:       'REACTIVADO',
+}
+
+const usageStatusES: Record<string, string> = {
+  AVAILABLE:   'DISPONIBLE',
+  ASSIGNED:    'ASIGNADO',
+  RESERVED:    'RESERVADO',
+  UNAVAILABLE: 'NO_DISPONIBLE',
+  ON_LOAN:     'PRESTADO',
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -20,19 +93,25 @@ export async function GET(req: NextRequest) {
     const sortBy        = searchParams.get('sortBy') ?? 'createdAt'
     const sortOrder     = (searchParams.get('sortOrder') ?? 'desc') as 'asc' | 'desc'
 
-    const where: Parameters<typeof prisma.asset.findMany>[0]['where'] = {
-      deletedAt: null,
-      ...(search && {
-        OR: [
-          { nombre:            { contains: search, mode: 'insensitive' } },
-          { codigoInventario:  { contains: search, mode: 'insensitive' } },
-          { serial:            { contains: search, mode: 'insensitive' } },
-        ],
-      }),
-      ...(categoryId && { categoryId: parseInt(categoryId) }),
-      ...(locationId && { locationId: parseInt(locationId) }),
-      ...(estadoTecnico.length > 0 && { estadoTecnico: { in: estadoTecnico as any[] } }),
-      ...(estadoUso.length   > 0 && { estadoUso:     { in: estadoUso     as any[] } }),
+    const where: any = {
+  deletedAt: null,
+  ...(search && {
+    OR: [
+      { name: { contains: search, mode: 'insensitive' } },
+      { inventoryCode: { contains: search, mode: 'insensitive' } },
+      { serialNumber: { contains: search, mode: 'insensitive' } },
+    ],
+  }),
+  ...(categoryId && { categoryId: parseInt(categoryId) }),
+  ...(locationId && { locationId: parseInt(locationId) }),
+};
+
+
+    if (estadoTecnico.length > 0) {
+      where.technicalStatus = { in: estadoTecnico.map(s => statusMap[s] || s) };
+    }
+    if (estadoUso.length > 0) {
+      where.usageStatus = { in: estadoUso.map(s => usageMap[s] || s) };
     }
 
     const [data, total] = await Promise.all([
@@ -46,8 +125,24 @@ export async function GET(req: NextRequest) {
       prisma.asset.count({ where }),
     ])
 
+    const mappedData = data.map(asset => {
+      const { assignments, ...rest } = asset as any
+      return {
+        ...rest,
+        nombre: asset.name,
+        codigoInventario: asset.inventoryCode,
+        serial: asset.serialNumber,
+        estadoTecnico: techStatusES[asset.technicalStatus] ?? asset.technicalStatus,
+        estadoUso: usageStatusES[asset.usageStatus] ?? asset.usageStatus,
+        spec: mapSpecFromDb(asset.spec as any),
+        category: asset.category ? { ...asset.category, nombre: asset.category.name, descripcion: asset.category.description } : null,
+        location: asset.location ? { ...asset.location, nombre: asset.location.name, descripcion: asset.location.description } : null,
+        assignedTo: (assignments as any[])?.[0]?.user ?? null,
+      }
+    })
+
     return NextResponse.json({
-      data,
+      data: mappedData,
       total,
       page,
       pageSize,
@@ -60,6 +155,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireRole(req, ['SUPER_ADMIN', 'ADMIN', 'TECHNICIAN'])
+  if (auth instanceof Response) return auth
+  const { user: actor } = auth
+
   try {
     const body = await req.json()
     const {
@@ -75,28 +174,39 @@ export async function POST(req: NextRequest) {
 
     const asset = await prisma.asset.create({
       data: {
-        nombre,
-        codigoInventario,
-        serial:       serial       ?? null,
-        estadoTecnico: estadoTecnico ?? 'OPERATIVO',
-        estadoUso:     estadoUso    ?? 'DISPONIBLE',
+        name: nombre,
+        inventoryCode: codigoInventario,
+        serialNumber:       serial       ?? null,
+        technicalStatus: (estadoTecnico ? statusMap[estadoTecnico] : null) ?? 'OPERATIONAL',
+        usageStatus:     (estadoUso ? usageMap[estadoUso] : null) ?? 'AVAILABLE',
         imageUrl:     imageUrl     ?? null,
         categoryId:   parseInt(categoryId),
         locationId:   parseInt(locationId),
         ...(spec && {
-          spec: { create: spec },
+          spec: { create: mapSpecToDb(spec) },
         }),
         logs: {
           create: {
-            tipo: 'CREACION',
-            descripcion: `Activo "${nombre}" creado en el sistema.`,
+            type: 'CREATED',
+            description: `Activo "${nombre}" creado en el sistema.`,
+            userId: actor.id,
           },
         },
       },
       include: ASSET_INCLUDE,
     })
 
-    return NextResponse.json(asset, { status: 201 })
+    const mappedAsset = {
+      ...asset,
+      nombre: asset.name,
+      codigoInventario: asset.inventoryCode,
+      serial: asset.serialNumber,
+      estadoTecnico: techStatusES[asset.technicalStatus] ?? asset.technicalStatus,
+      estadoUso: usageStatusES[asset.usageStatus] ?? asset.usageStatus,
+      spec: mapSpecFromDb(asset.spec as any),
+    }
+
+    return NextResponse.json(mappedAsset, { status: 201 })
   } catch (error: any) {
     console.error('[POST /api/assets]', error)
     if (error.code === 'P2002') {

@@ -1,11 +1,23 @@
 import AppShell from '@/components/layout/AppShell'
+import { AuthProvider } from '@/context/AuthContext'
+import { requireSession } from '@/lib/session'
+import type { Role } from '@/types/domain'
 
-// TODO: Replace with real session/auth once auth is implemented
-// For now, simulates ADMIN role for development
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const session = await requireSession()
+
+  const user = {
+    id:    session.id,
+    name:  session.name,
+    email: session.email,
+    role:  session.role as Role,
+  }
+
   return (
-    <AppShell role="ADMIN" userName="Admin ITAM" pendingMovements={3}>
-      {children}
-    </AppShell>
+    <AuthProvider initialUser={user}>
+      <AppShell role={user.role} userName={user.name} pendingMovements={0}>
+        {children}
+      </AppShell>
+    </AuthProvider>
   )
 }
