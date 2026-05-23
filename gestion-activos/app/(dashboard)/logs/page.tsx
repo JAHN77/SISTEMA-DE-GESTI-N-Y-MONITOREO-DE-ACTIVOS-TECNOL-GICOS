@@ -28,7 +28,7 @@ export default function LogsPage() {
         <span className="breadcrumbs-current">Bitácora de Eventos</span>
       </div>
 
-      <div className="page-header" style={{ marginTop: 16 }}>
+      <div className="page-header">
         <div>
           <h1 className="page-title">Bitácora del Sistema</h1>
           <p className="page-subtitle">Registro completo de todas las acciones del sistema</p>

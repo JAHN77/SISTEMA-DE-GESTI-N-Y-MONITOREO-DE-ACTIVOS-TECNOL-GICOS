@@ -90,7 +90,7 @@ export default function SettingsPage() {
         <span className="breadcrumbs-current">Configuración</span>
       </div>
 
-      <div className="page-header" style={{ marginTop: 16 }}>
+      <div className="page-header">
         <div>
           <h1 className="page-title">Configuración</h1>
           <p className="page-subtitle">Gestiona tu perfil y preferencias del sistema</p>

@@ -72,7 +72,7 @@ export default function ReportsPage() {
         <span className="breadcrumbs-current">Reportes</span>
       </div>
 
-      <div className="page-header" style={{ marginTop: 16 }}>
+      <div className="page-header">
         <div>
           <h1 className="page-title">Reportes</h1>
           <p className="page-subtitle">Genera y exporta reportes operacionales del sistema</p>
@@ -80,7 +80,7 @@ export default function ReportsPage() {
       </div>
 
       {/* Report type selector */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 24 }}>
         {REPORTS.map(r => (
           <button
             key={r.type}

@@ -37,7 +37,7 @@ export default function MaintenancePage() {
         <span className="breadcrumbs-current">Mantenimiento</span>
       </div>
 
-      <div className="page-header" style={{ marginTop: 16 }}>
+      <div className="page-header">
         <div>
           <h1 className="page-title">Registros de Mantenimiento</h1>
           <p className="page-subtitle">Historial de mantenimientos preventivos, correctivos y calibraciones</p>

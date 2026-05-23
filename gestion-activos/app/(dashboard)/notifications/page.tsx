@@ -81,7 +81,7 @@ export default function NotificationsPage() {
         <span className="breadcrumbs-current">Notificaciones</span>
       </div>
 
-      <div className="page-header" style={{ marginTop: 16 }}>
+      <div className="page-header">
         <div>
           <h1 className="page-title">Centro de Notificaciones</h1>
           <p className="page-subtitle">

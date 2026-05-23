@@ -79,7 +79,7 @@ export default function AssignmentsPage() {
         <span className="breadcrumbs-current">Asignaciones</span>
       </div>
 
-      <div className="page-header" style={{ marginTop: 16 }}>
+      <div className="page-header">
         <div>
           <h1 className="page-title">Asignaciones</h1>
           <p className="page-subtitle">Control de activos asignados a usuarios y departamentos</p>
