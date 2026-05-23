@@ -6,8 +6,12 @@ import type { MaintenanceType } from '@/types/domain'
 import { maintenanceTypeBadge, MAINTENANCE_TYPE_LABELS, formatDate, formatCurrency } from '@/lib/ui-helpers'
 import { WrenchIcon, PlusIcon } from '@/components/icons'
 import MaintenanceCreateModal from '@/components/maintenance/MaintenanceCreateModal'
+import { useAuth } from '@/context/AuthContext'
+import { can } from '@/lib/permissions'
 
 export default function MaintenancePage() {
+  const { user } = useAuth()
+  const canManage = can(user.role, 'manageMaintenance')
   const [records, setRecords] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [filterTipo, setFilterTipo] = useState<MaintenanceType | ''>('')
@@ -38,16 +42,18 @@ export default function MaintenancePage() {
           <h1 className="page-title">Registros de Mantenimiento</h1>
           <p className="page-subtitle">Historial de mantenimientos preventivos, correctivos y calibraciones</p>
         </div>
-        <button
-          className="btn btn-primary"
-          onClick={() => setShowCreate(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-        >
-          <PlusIcon size={14} /> Nuevo Mantenimiento
-        </button>
+        {canManage && (
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowCreate(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <PlusIcon size={14} /> Nuevo Mantenimiento
+          </button>
+        )}
       </div>
 
-      {showCreate && (
+      {showCreate && canManage && (
         <MaintenanceCreateModal
           onClose={() => setShowCreate(false)}
           onSuccess={() => { setShowCreate(false); loadRecords() }}

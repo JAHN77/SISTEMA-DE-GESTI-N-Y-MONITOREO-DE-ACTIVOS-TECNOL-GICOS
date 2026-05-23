@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireRole(req, ['SUPER_ADMIN', 'ADMIN', 'TECHNICIAN', 'USER', 'AUDITOR'])
+  const auth = await requireRole(req, ['SUPER_ADMIN', 'ADMIN', 'TECHNICIAN', 'USER'])
   if (auth instanceof Response) return auth
   const { user: actor } = auth
 

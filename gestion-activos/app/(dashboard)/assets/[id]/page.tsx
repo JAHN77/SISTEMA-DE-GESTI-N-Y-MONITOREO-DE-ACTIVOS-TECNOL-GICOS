@@ -19,6 +19,7 @@ import {
   CheckIcon, XIcon, AlertIcon, InfoIcon, ZapIcon, NoteIcon,
 } from '@/components/icons'
 import { AssetImage } from '@/components/assets/asset-image'
+import { can } from '@/lib/permissions'
 
 const LABEL = (map: Record<string, string>, key: string) => map[key] ?? key
 
@@ -120,8 +121,10 @@ export default function AssetDetailPage() {
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
 
-  const canEdit  = ['SUPER_ADMIN', 'ADMIN', 'TECHNICIAN'].includes(user.role)
-  const canAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(user.role)
+  const canEdit    = can(user.role, 'editAsset')
+  const canAssign  = can(user.role, 'assignAsset')
+  const canDelete  = can(user.role, 'deleteAsset')
+  const canRequest = can(user.role, 'requestMovement')
 
   const loadAsset = useCallback(() => {
     setLoading(true)
@@ -211,7 +214,7 @@ export default function AssetDetailPage() {
           {canEdit && (
             <Link href={`/assets/${id}/edit`} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 5 }}><EditIcon size={13} /> Editar</Link>
           )}
-          {canAdmin && (
+          {canDelete && (
             <button className="btn btn-sm" onClick={handleDelete} disabled={deleting}
               style={{ background: 'var(--color-danado-bg)', color: 'var(--color-danado)', border: '1px solid var(--color-danado)', display: 'flex', alignItems: 'center', gap: 5 }}>
               {deleting ? '...' : <><TrashIcon size={13} /> Eliminar</>}
@@ -232,11 +235,11 @@ export default function AssetDetailPage() {
       </div>
 
       {/* Tab content */}
-      {tab === 'overview'    && <OverviewTab    asset={asset} canEdit={canEdit} setTab={setTab} />}
+      {tab === 'overview'    && <OverviewTab    asset={asset} canEdit={canEdit} canAssign={canAssign} canRequest={canRequest} setTab={setTab} />}
       {tab === 'specs'       && <SpecsTab       spec={asset.spec} />}
-      {tab === 'assignments' && <AssignmentsTab asset={asset} canEdit={canEdit} currentUserId={user.id} onRefresh={loadAsset} />}
+      {tab === 'assignments' && <AssignmentsTab asset={asset} canAssign={canAssign} currentUserId={user.id} onRefresh={loadAsset} />}
       {tab === 'maintenance' && <MaintenanceTab asset={asset} canEdit={canEdit} currentUserId={user.id} onRefresh={loadAsset} />}
-      {tab === 'movements'   && <MovementsTab   asset={asset} canEdit={canEdit} currentUserId={user.id} onRefresh={loadAsset} />}
+      {tab === 'movements'   && <MovementsTab   asset={asset} canEdit={canRequest} currentUserId={user.id} onRefresh={loadAsset} />}
       {tab === 'logs'        && <LogsTab        logs={asset.logs ?? []} />}
     </div>
   )
@@ -245,7 +248,7 @@ export default function AssetDetailPage() {
 // ══════════════════════════════════════════════════════════════════
 // 1. OVERVIEW TAB — Operational control center summary
 // ══════════════════════════════════════════════════════════════════
-function OverviewTab({ asset, canEdit, setTab }: { asset: any; canEdit: boolean; setTab: (t: Tab) => void }) {
+function OverviewTab({ asset, canEdit, canAssign, canRequest, setTab }: { asset: any; canEdit: boolean; canAssign: boolean; canRequest: boolean; setTab: (t: Tab) => void }) {
   const activeAssignment = (asset.assignments ?? []).find((a: any) => !a.endDate)
   const recentLogs       = (asset.logs ?? []).slice(0, 5)
   const activeMaintenance = (asset.maintenances ?? []).find((m: any) =>
@@ -268,7 +271,7 @@ function OverviewTab({ asset, canEdit, setTab }: { asset: any; canEdit: boolean;
           {canEdit && (
             <Link href={`/assets/${asset.id}/edit`} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 5 }}><EditIcon size={13} /> Editar Activo</Link>
           )}
-          {canEdit && (
+          {canAssign && (
             <button className="btn btn-sm" onClick={() => setTab('assignments')}
               style={{ background: 'rgba(99,102,241,0.1)', color: 'var(--color-primary)', border: '1px solid rgba(99,102,241,0.25)' }}>
               + Asignar
@@ -280,10 +283,12 @@ function OverviewTab({ asset, canEdit, setTab }: { asset: any; canEdit: boolean;
               <WrenchIcon size={13} /> Mantenimiento
             </button>
           )}
-          <button className="btn btn-sm" onClick={() => setTab('movements')}
-            style={{ background: 'rgba(14,165,233,0.08)', color: '#0ea5e9', border: '1px solid rgba(14,165,233,0.25)' }}>
-            Solicitar Traslado
-          </button>
+          {canRequest && (
+            <button className="btn btn-sm" onClick={() => setTab('movements')}
+              style={{ background: 'rgba(14,165,233,0.08)', color: '#0ea5e9', border: '1px solid rgba(14,165,233,0.25)' }}>
+              Solicitar Traslado
+            </button>
+          )}
           <button className="btn btn-sm" onClick={() => setTab('logs')}
             style={{ background: 'var(--color-bg-overlay)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', gap: 5 }}>
             <ClipboardIcon size={13} /> Bitácora
@@ -390,7 +395,7 @@ function OverviewTab({ asset, canEdit, setTab }: { asset: any; canEdit: boolean;
               <div style={{ textAlign: 'center', padding: '16px 0' }}>
                 <div style={{ color: 'var(--color-text-muted)', marginBottom: 8 }}><UserIcon size={28} strokeWidth={1.5} /></div>
                 <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 12 }}>Sin asignación activa</div>
-                {canEdit && (
+                {canAssign && (
                   <button className="btn btn-primary btn-sm" onClick={() => setTab('assignments')}>+ Asignar</button>
                 )}
               </div>
@@ -508,8 +513,8 @@ function SpecsTab({ spec }: { spec: any }) {
 // 3. ASSIGNMENTS TAB — Enterprise ownership lifecycle
 // ══════════════════════════════════════════════════════════════════
 function AssignmentsTab({
-  asset, canEdit, currentUserId, onRefresh,
-}: { asset: any; canEdit: boolean; currentUserId: number; onRefresh: () => void }) {
+  asset, canAssign, currentUserId, onRefresh,
+}: { asset: any; canAssign: boolean; currentUserId: number; onRefresh: () => void }) {
   const { toast } = useToast()
 
   const [users, setUsers]               = useState<any[]>([])
@@ -609,7 +614,7 @@ function AssignmentsTab({
                 {active.reason && <span style={{ fontSize: 11, color: 'var(--color-text-muted)', fontStyle: 'italic' }}>"{active.reason}"</span>}
               </div>
             </div>
-            {canEdit && (
+            {canAssign && (
               <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                 <button className="btn btn-secondary btn-sm" onClick={() => { setIsReassign(true); setShowForm(true) }} disabled={returning || submitting} style={{ display: 'flex', alignItems: 'center', gap: 5 }}><RefreshIcon size={13} /> Reasignar</button>
                 <button className="btn btn-sm" onClick={handleEndAssignment} disabled={returning || submitting}
@@ -626,7 +631,7 @@ function AssignmentsTab({
             </div>
           )}
         </div>
-      ) : !showForm && canEdit && (
+      ) : !showForm && canAssign && (
         <div style={{ border: '2px dashed var(--color-border)', borderRadius: 'var(--radius-lg)', padding: 32, textAlign: 'center', background: 'var(--color-bg-surface)' }}>
           <div style={{ marginBottom: 12, color: 'var(--color-text-muted)' }}><UsersIcon size={36} strokeWidth={1.5} /></div>
           <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 6 }}>Sin asignación activa</div>
@@ -638,7 +643,7 @@ function AssignmentsTab({
       )}
 
       {/* ─── Quick Assignment Panel ─── */}
-      {showForm && canEdit && (
+      {showForm && canAssign && (
         <div style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-primary)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: '0 0 0 4px rgba(99,102,241,0.08)' }}>
           <div style={{ background: 'rgba(99,102,241,0.06)', borderBottom: '1px solid var(--color-border)', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-primary)' }}>
@@ -741,7 +746,7 @@ function AssignmentsTab({
           <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Historial de Asignaciones <span style={{ fontWeight: 400 }}>({assignments.length})</span>
           </span>
-          {!showForm && canEdit && active && (
+          {!showForm && canAssign && active && (
             <button className="btn btn-ghost btn-sm" style={{ fontSize: 12 }} onClick={() => { setIsReassign(false); setShowForm(true) }}>+ Nueva</button>
           )}
         </div>

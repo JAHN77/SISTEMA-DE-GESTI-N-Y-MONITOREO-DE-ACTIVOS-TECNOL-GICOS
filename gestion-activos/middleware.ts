@@ -14,6 +14,7 @@ const PUBLIC_API_PREFIXES = [
 // Role-based route guards: only listed roles may access these path prefixes
 const ROLE_GUARDS: { path: string; roles: string[] }[] = [
   { path: '/users',        roles: ['SUPER_ADMIN', 'ADMIN'] },
+  { path: '/assignments',  roles: ['SUPER_ADMIN', 'ADMIN'] },
   { path: '/settings',     roles: ['SUPER_ADMIN', 'ADMIN'] },
   { path: '/reports',      roles: ['SUPER_ADMIN', 'ADMIN', 'AUDITOR'] },
   { path: '/api/users',    roles: ['SUPER_ADMIN', 'ADMIN'] },

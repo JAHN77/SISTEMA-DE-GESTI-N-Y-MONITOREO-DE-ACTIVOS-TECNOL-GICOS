@@ -9,6 +9,7 @@ import {
 } from '@/lib/ui-helpers'
 import MovementRequestModal from '@/components/movements/MovementRequestModal'
 import { useAuth } from '@/context/AuthContext'
+import { can } from '@/lib/permissions'
 import { SearchIcon, PackageIcon, EyeIcon, EditIcon, TruckIcon, TrashIcon, XIcon } from '@/components/icons'
 
 const ESTADOS_TECNICOS: EstadoTecnico[] = ['OPERATIVO','EN_MANTENIMIENTO','EN_REPARACION','DANADO','FUERA_DE_SERVICIO','DE_BAJA','EN_TRANSITO']
@@ -16,8 +17,10 @@ const ESTADOS_USO: EstadoUso[] = ['DISPONIBLE','ASIGNADO','RESERVADO','NO_DISPON
 
 export default function AssetsPage() {
   const { user } = useAuth()
-  const canEdit  = ['SUPER_ADMIN', 'ADMIN', 'TECHNICIAN'].includes(user.role)
-  const canAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(user.role)
+  const canEdit    = can(user.role, 'editAsset')
+  const canCreate  = can(user.role, 'createAsset')
+  const canDelete  = can(user.role, 'deleteAsset')
+  const canRequest = can(user.role, 'requestMovement')
   const [assets, setAssets]   = useState<Asset[]>([])
   const [total, setTotal]     = useState(0)
   const [page, setPage]       = useState(1)
@@ -100,7 +103,7 @@ export default function AssetsPage() {
           <h1 className="page-title">Activos Tecnológicos</h1>
           <p className="page-subtitle">{total} activos registrados en el sistema</p>
         </div>
-        {canEdit && (
+        {canCreate && (
           <div className="page-header-actions">
             <Link href="/assets/new" className="btn btn-primary">+ Nuevo Activo</Link>
           </div>
@@ -194,7 +197,7 @@ export default function AssetsPage() {
                     <div className="empty-state-icon"><PackageIcon size={32} strokeWidth={1.5} /></div>
                     <div className="empty-state-title">Sin activos</div>
                     <div className="empty-state-desc">No se encontraron activos con los filtros actuales.</div>
-                    {canEdit && (
+                    {canCreate && (
                       <Link href="/assets/new" className="btn btn-primary">+ Crear primer activo</Link>
                     )}
                   </div>
@@ -239,8 +242,10 @@ export default function AssetsPage() {
                   {canEdit && (
                     <Link href={`/assets/${asset.id}/edit`} className="btn btn-ghost btn-icon btn-sm" title="Editar"><EditIcon size={13} /></Link>
                   )}
-                  <button className="btn btn-ghost btn-icon btn-sm" title="Solicitar movimiento" onClick={() => setMovementAsset(asset)}><TruckIcon size={13} /></button>
-                  {canAdmin && (
+                  {canRequest && (
+                    <button className="btn btn-ghost btn-icon btn-sm" title="Solicitar movimiento" onClick={() => setMovementAsset(asset)}><TruckIcon size={13} /></button>
+                  )}
+                  {canDelete && (
                     <button className="btn btn-ghost btn-icon btn-sm" title="Eliminar" onClick={() => handleDelete(asset)} style={{ color: 'var(--color-danado)' }}><TrashIcon size={13} /></button>
                   )}
                 </td>

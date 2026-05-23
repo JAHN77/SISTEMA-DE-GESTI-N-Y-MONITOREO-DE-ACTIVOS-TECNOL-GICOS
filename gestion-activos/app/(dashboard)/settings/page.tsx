@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/components/ui/ToastProvider'
-import { UserIcon, InfoIcon, EditIcon, SaveIcon } from '@/components/icons'
+import { UserIcon, InfoIcon, EditIcon, SaveIcon, LockIcon } from '@/components/icons'
 
 const ROLE_LABELS: Record<string, string> = {
   SUPER_ADMIN: 'Super Administrador',
@@ -187,7 +187,7 @@ export default function SettingsPage() {
 
       {/* Change password */}
       <div className="form-section">
-        <div className="form-section-title">🔒 Cambiar Contraseña</div>
+        <div className="form-section-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}><LockIcon size={14} /> Cambiar Contraseña</div>
         <div className="form-row form-row-1" style={{ maxWidth: 400 }}>
           <div className="form-group">
             <label className="form-label" htmlFor="pw-current">Contraseña actual <span className="required">*</span></label>
@@ -230,9 +230,10 @@ export default function SettingsPage() {
             className="btn btn-primary"
             onClick={handleChangePassword}
             disabled={pwSaving}
-            style={{ marginTop: 4, alignSelf: 'flex-start' }}
+            style={{ marginTop: 4, alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 6 }}
           >
-            {pwSaving ? 'Actualizando...' : '🔒 Actualizar Contraseña'}
+            <LockIcon size={13} />
+            {pwSaving ? 'Actualizando...' : 'Actualizar Contraseña'}
           </button>
         </div>
       </div>
