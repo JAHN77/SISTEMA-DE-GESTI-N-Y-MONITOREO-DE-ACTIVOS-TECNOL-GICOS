@@ -20,7 +20,7 @@ const ROLE_GUARDS: { path: string; roles: string[] }[] = [
   { path: '/api/users',    roles: ['SUPER_ADMIN', 'ADMIN'] },
 ]
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   // Static assets — skip
