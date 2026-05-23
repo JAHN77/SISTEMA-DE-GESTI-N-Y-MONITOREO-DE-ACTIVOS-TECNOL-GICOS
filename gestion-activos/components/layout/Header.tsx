@@ -75,22 +75,9 @@ export default function Header({ onToggleSidebar, role, userName, pendingMovemen
 
       <div className="header-actions">
         {/* Quick actions */}
-        <Link href="/assets/new" style={{
-          background: 'var(--color-primary)',
-          color: 'white',
-          border: 'none',
-          padding: '6px 12px',
-          borderRadius: '6px',
-          fontSize: '13px',
-          fontWeight: 500,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          textDecoration: 'none',
-        }}>
+        <Link href="/assets/new" className="btn btn-primary" style={{ gap: '6px', textDecoration: 'none' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-          Nuevo
+          <span className="header-new-label">Nuevo</span>
         </Link>
 
         <div style={{ width: '1px', height: '24px', background: 'var(--color-border)', margin: '0 8px' }} />

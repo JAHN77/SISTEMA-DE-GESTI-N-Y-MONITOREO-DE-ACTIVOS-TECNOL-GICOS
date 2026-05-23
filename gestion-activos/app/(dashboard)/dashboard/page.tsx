@@ -122,23 +122,20 @@ export default function DashboardPage() {
   if (!stats) return null
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* Page Header omitted as it is now in the layout/header area or kept minimal */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="page-wrapper">
+      {/* Page Header */}
+      <div className="dashboard-header">
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 600, color: 'var(--color-text-primary)', margin: 0 }}>Vista General</h1>
           <p style={{ fontSize: '14px', color: 'var(--color-text-secondary)', margin: '4px 0 0 0' }}>Monitoreo de estado y operaciones en tiempo real</p>
         </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)', padding: '8px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', color: 'var(--color-text-primary)' }}>Descargar Reporte</button>
-        </div>
       </div>
 
       {/* SECTION 1 - KPI CARDS */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
+      <div className="kpi-grid">
         <MetricCard 
           icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>} 
-          label="Total Activos" value={stats.totalAssets} color="var(--color-primary)" 
+          label="Total Activos" value={stats.totalAssets} color="var(--color-accent)"
           trend={{ value: '12', positive: true }} 
         />
         <MetricCard 
@@ -157,7 +154,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
+      <div className="layout-with-aside">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
           {/* SECTION 2 - SYSTEM HEALTH CHART */}
@@ -203,40 +200,39 @@ export default function DashboardPage() {
           <div style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)', borderRadius: '12px', overflow: 'hidden' }}>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ fontSize: '16px', fontWeight: 600, margin: 0, color: 'var(--color-text-primary)' }}>Actividad Reciente</h3>
-              <Link href="/logs" style={{ fontSize: '13px', color: 'var(--color-primary)', fontWeight: 500, textDecoration: 'none' }}>Ver todo →</Link>
+              <Link href="/logs" style={{ fontSize: '13px', color: 'var(--color-accent)', fontWeight: 500, textDecoration: 'none' }}>Ver todo →</Link>
             </div>
             
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead style={{ background: 'var(--color-bg-overlay)', fontSize: '12px', color: 'var(--color-text-secondary)' }}>
+            <table className="responsive-table" style={{ width: '100%' }}>
+              <thead>
                 <tr>
-                  <th style={{ padding: '12px 24px', fontWeight: 500, borderBottom: '1px solid var(--color-border)' }}>Activo</th>
-                  <th style={{ padding: '12px 24px', fontWeight: 500, borderBottom: '1px solid var(--color-border)' }}>Acción</th>
-                  <th style={{ padding: '12px 24px', fontWeight: 500, borderBottom: '1px solid var(--color-border)' }}>Usuario</th>
-                  <th style={{ padding: '12px 24px', fontWeight: 500, borderBottom: '1px solid var(--color-border)' }}>Fecha</th>
-                  <th style={{ padding: '12px 24px', fontWeight: 500, borderBottom: '1px solid var(--color-border)', textAlign: 'right' }}></th>
+                  <th>Activo</th>
+                  <th className="col-secondary">Acción</th>
+                  <th className="col-optional">Usuario</th>
+                  <th className="col-optional">Fecha</th>
                 </tr>
               </thead>
-              <tbody style={{ fontSize: '13px' }}>
+              <tbody>
                 {stats.recentLogs.slice(0, 5).map((log: any) => (
-                  <tr key={log.id} style={{ borderBottom: '1px solid var(--color-border)', transition: 'background 0.2s', cursor: 'pointer' }} className="hover:bg-var(--color-bg-overlay)">
-                    <td style={{ padding: '16px 24px' }}>
-                      <div style={{ fontWeight: 500, color: 'var(--color-text-primary)' }}>{log.asset?.nombre ?? `#${log.assetId}`}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '2px' }}>{log.asset?.codigoInventario}</div>
+                  <tr key={log.id}>
+                    <td className="col-title">
+                      <div>
+                        <Link href={`/assets/${log.assetId}`} style={{ color: 'var(--color-accent)', textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
+                          {log.asset?.nombre ?? `#${log.assetId}`}
+                        </Link>
+                        {log.asset?.codigoInventario && <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2 }}>{log.asset.codigoInventario}</div>}
+                      </div>
+                      <span className={eventTypeBadge(log.tipo)} style={{ flexShrink: 0 }}>{EVENT_TYPE_LABELS[log.tipo as keyof typeof EVENT_TYPE_LABELS] ?? log.tipo}</span>
                     </td>
-                    <td style={{ padding: '16px 24px' }}>
+                    <td className="col-secondary" data-label="Acción">
                       <span className={eventTypeBadge(log.tipo)}>{EVENT_TYPE_LABELS[log.tipo as keyof typeof EVENT_TYPE_LABELS] ?? log.tipo}</span>
                     </td>
-                    <td style={{ padding: '16px 24px', color: 'var(--color-text-secondary)' }}>{log.user?.name ?? 'Sistema'}</td>
-                    <td style={{ padding: '16px 24px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>{formatDateTime(log.fecha)}</td>
-                    <td style={{ padding: '16px 24px', textAlign: 'right' }}>
-                      <button style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
-                      </button>
-                    </td>
+                    <td className="col-optional" data-label="Usuario" style={{ color: 'var(--color-text-secondary)' }}>{log.user?.name ?? 'Sistema'}</td>
+                    <td className="col-optional" data-label="Fecha" style={{ color: 'var(--color-text-muted)', whiteSpace: 'nowrap', fontSize: 12 }}>{formatDateTime(log.fecha)}</td>
                   </tr>
                 ))}
                 {stats.recentLogs.length === 0 && (
-                  <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: 'var(--color-text-muted)' }}>Sin actividad reciente</td></tr>
+                  <tr><td colSpan={4} style={{ padding: '40px', textAlign: 'center', color: 'var(--color-text-muted)' }}>Sin actividad reciente</td></tr>
                 )}
               </tbody>
             </table>

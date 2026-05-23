@@ -68,17 +68,17 @@ export default function MaintenancePage() {
       </div>
 
       <div className="table-wrapper">
-        <table>
+        <table className="responsive-table">
           <thead>
             <tr>
-              <th>Tipo</th>
               <th>Activo</th>
-              <th>Descripción</th>
-              <th>Proveedor</th>
-              <th>Costo</th>
-              <th>Fecha Inicio</th>
-              <th>Fecha Fin</th>
-              <th>Técnico</th>
+              <th>Tipo</th>
+              <th className="col-secondary">Descripción</th>
+              <th className="col-optional">Proveedor</th>
+              <th className="col-secondary">Costo</th>
+              <th className="col-optional">Fecha Inicio</th>
+              <th className="col-optional">Fecha Fin</th>
+              <th className="col-secondary">Técnico</th>
             </tr>
           </thead>
           <tbody>
@@ -98,18 +98,26 @@ export default function MaintenancePage() {
               </tr>
             ) : filtered.map((m: any) => (
               <tr key={m.id}>
-                <td><span className={maintenanceTypeBadge(m.tipo)}>{MAINTENANCE_TYPE_LABELS[m.tipo as MaintenanceType]}</span></td>
-                <td>
-                  <Link href={`/assets/${m.assetId}`} style={{ color: 'var(--color-accent)', textDecoration: 'none' }}>
-                    {m.asset?.nombre ?? `#${m.assetId}`}
-                  </Link>
+                <td className="col-title">
+                  <div>
+                    <Link href={`/assets/${m.assetId}`} style={{ color: 'var(--color-accent)', textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
+                      {m.asset?.nombre ?? `#${m.assetId}`}
+                    </Link>
+                    {m.realizadoPor && <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 1 }}>{m.realizadoPor.name}</div>}
+                  </div>
+                  <span className={maintenanceTypeBadge(m.tipo)} style={{ flexShrink: 0 }}>{MAINTENANCE_TYPE_LABELS[m.tipo as MaintenanceType]}</span>
                 </td>
-                <td className="truncate" style={{ maxWidth: 220, color: 'var(--color-text-secondary)' }}>{m.descripcion}</td>
-                <td style={{ color: 'var(--color-text-secondary)' }}>{m.proveedor ?? '—'}</td>
-                <td style={{ color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>{formatCurrency(m.costo)}</td>
-                <td style={{ whiteSpace: 'nowrap', color: 'var(--color-text-secondary)' }}>{formatDate(m.fechaInicio)}</td>
-                <td style={{ whiteSpace: 'nowrap', color: 'var(--color-text-secondary)' }}>{m.fechaFin ? formatDate(m.fechaFin) : <em style={{ color: 'var(--color-mantenimiento)' }}>En curso</em>}</td>
-                <td style={{ color: 'var(--color-text-secondary)' }}>{m.realizadoPor?.name ?? '—'}</td>
+                <td data-label="Tipo"><span className={maintenanceTypeBadge(m.tipo)}>{MAINTENANCE_TYPE_LABELS[m.tipo as MaintenanceType]}</span></td>
+                <td className="col-secondary" data-label="Descripción" style={{ color: 'var(--color-text-secondary)' }}>
+                  <span className="truncate" style={{ maxWidth: 220 }}>{m.descripcion}</span>
+                </td>
+                <td className="col-optional" data-label="Proveedor" style={{ color: 'var(--color-text-secondary)' }}>{m.proveedor ?? '—'}</td>
+                <td className="col-secondary" data-label="Costo" style={{ color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>{formatCurrency(m.costo)}</td>
+                <td className="col-optional" data-label="Inicio" style={{ whiteSpace: 'nowrap', color: 'var(--color-text-secondary)' }}>{formatDate(m.fechaInicio)}</td>
+                <td className="col-optional" data-label="Fin" style={{ whiteSpace: 'nowrap', color: 'var(--color-text-secondary)' }}>
+                  {m.fechaFin ? formatDate(m.fechaFin) : <em style={{ color: 'var(--color-mantenimiento)' }}>En curso</em>}
+                </td>
+                <td className="col-secondary" data-label="Técnico" style={{ color: 'var(--color-text-secondary)' }}>{m.realizadoPor?.name ?? '—'}</td>
               </tr>
             ))}
           </tbody>

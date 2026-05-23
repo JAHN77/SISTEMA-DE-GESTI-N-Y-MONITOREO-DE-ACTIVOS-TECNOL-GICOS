@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/auth'
+import { createNotification } from '@/lib/notifications'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -59,6 +60,18 @@ export async function POST(req: NextRequest, { params }: Params) {
       data: { usageStatus: 'ASSIGNED' },
     })
 
+    // Notify the assigned user
+    const assetForNotif = await prisma.asset.findUnique({ where: { id: assetId }, select: { name: true } })
+    await createNotification({
+      userId: parseInt(userId),
+      type: 'NEW_ASSIGNMENT',
+      title: 'Activo asignado',
+      message: `Se te ha asignado: ${assetForNotif?.name ?? `#${assetId}`}`,
+      url: `/assets/${assetId}`,
+      referenceId: assetId,
+      referenceType: 'Asset',
+    })
+
     const mappedAssignment = {
       ...assignment,
       usuario: assignment.user,
@@ -109,6 +122,18 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     await prisma.asset.update({
       where: { id: assetId },
       data: { usageStatus: 'AVAILABLE' },
+    })
+
+    // Notify the previously assigned user
+    const unassignAsset = await prisma.asset.findUnique({ where: { id: assetId }, select: { name: true } })
+    await createNotification({
+      userId: updated.userId,
+      type: 'NEW_ASSIGNMENT',
+      title: 'Asignación finalizada',
+      message: `Tu asignación de "${unassignAsset?.name ?? `#${assetId}`}" ha sido finalizada.`,
+      url: `/assets/${assetId}`,
+      referenceId: assetId,
+      referenceType: 'Asset',
     })
 
     const mappedAssignment = {

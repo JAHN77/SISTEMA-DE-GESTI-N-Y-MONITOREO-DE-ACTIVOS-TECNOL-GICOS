@@ -14,10 +14,11 @@ import {
 } from '@/lib/ui-helpers'
 import type { EstadoTecnico, EstadoUso } from '@/types/domain'
 import {
-  PackageIcon, WrenchIcon, ClipboardIcon, UsersIcon, UserIcon,
+  WrenchIcon, ClipboardIcon, UsersIcon, UserIcon,
   BuildingIcon, SearchIcon, EditIcon, TrashIcon, TruckIcon, RefreshIcon,
   CheckIcon, XIcon, AlertIcon, InfoIcon, ZapIcon, NoteIcon,
 } from '@/components/icons'
+import { AssetImage } from '@/components/assets/asset-image'
 
 const LABEL = (map: Record<string, string>, key: string) => map[key] ?? key
 
@@ -173,11 +174,12 @@ export default function AssetDetailPage() {
         marginTop: 16, marginBottom: 16,
         display: 'flex', gap: 20, alignItems: 'flex-start',
       }}>
-        <div style={{
-          width: 56, height: 56, borderRadius: 12, flexShrink: 0,
-          background: 'var(--color-accent-subtle)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}><PackageIcon size={26} strokeWidth={1.5} /></div>
+        <AssetImage
+          imageUrl={asset.imageUrl}
+          categoryName={asset.category?.nombre}
+          size={80}
+          alt={asset.nombre}
+        />
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 4 }}>
@@ -256,7 +258,7 @@ function OverviewTab({ asset, canEdit, setTab }: { asset: any; canEdit: boolean;
     (warrantyDate.getTime() - Date.now()) < 90 * 24 * 60 * 60 * 1000
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 300px', gap: 20, alignItems: 'start' }}>
+    <div className="layout-detail-sidebar">
 
       {/* ── Left column ── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

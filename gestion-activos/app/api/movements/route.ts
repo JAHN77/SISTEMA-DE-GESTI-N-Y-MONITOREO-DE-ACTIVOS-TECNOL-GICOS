@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireRole, getUserFromRequest } from '@/lib/auth'
+import { notifyAllAdmins } from '@/lib/notifications'
 
 export async function GET(req: NextRequest) {
   const user = await getUserFromRequest(req)
@@ -64,6 +65,26 @@ export async function POST(req: NextRequest) {
         requestedBy: true,
         destination: true,
       },
+    })
+
+    // Missing EventLog for movement creation
+    await prisma.eventLog.create({
+      data: {
+        type: 'STATUS_CHANGED',
+        description: `Solicitud de movimiento creada hacia "${movement.destination?.name ?? '—'}".`,
+        assetId: movement.assetId,
+        userId: actor.id,
+      },
+    })
+
+    // Notify all admins of the pending request
+    await notifyAllAdmins({
+      type: 'WARRANTY_EXPIRING',
+      title: 'Solicitud de movimiento pendiente',
+      message: `${actor.name} solicita mover "${movement.asset?.name ?? `#${movement.assetId}`}" a ${movement.destination?.name ?? '—'}.`,
+      url: '/movements',
+      referenceId: movement.id,
+      referenceType: 'MovementRequest',
     })
 
     const mappedMovement = {

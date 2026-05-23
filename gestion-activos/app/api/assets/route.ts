@@ -14,6 +14,32 @@ const ASSET_INCLUDE = {
   },
 } as const
 
+// Spec field mapping (Spanish form keys ↔ Prisma English keys)
+function mapSpecToDb(spec: Record<string, any>) {
+  const { marca, modelo, almacenamiento, sistemaOperativo, versionSO, ...rest } = spec
+  return {
+    ...(marca             !== undefined && { brand: marca }),
+    ...(modelo            !== undefined && { model: modelo }),
+    ...(almacenamiento    !== undefined && { storage: almacenamiento }),
+    ...(sistemaOperativo  !== undefined && { operatingSystem: sistemaOperativo }),
+    ...(versionSO         !== undefined && { osVersion: versionSO }),
+    ...rest,
+  }
+}
+
+function mapSpecFromDb(spec: Record<string, any> | null) {
+  if (!spec) return null
+  const { brand, model, storage, operatingSystem, osVersion, ...rest } = spec
+  return {
+    ...rest,
+    marca: brand,
+    modelo: model,
+    almacenamiento: storage,
+    sistemaOperativo: operatingSystem,
+    versionSO: osVersion,
+  }
+}
+
 // Spanish → DB (for WHERE filters)
 const statusMap: Record<string, string> = {
   OPERATIVO:        'OPERATIONAL',
@@ -108,6 +134,7 @@ export async function GET(req: NextRequest) {
         serial: asset.serialNumber,
         estadoTecnico: techStatusES[asset.technicalStatus] ?? asset.technicalStatus,
         estadoUso: usageStatusES[asset.usageStatus] ?? asset.usageStatus,
+        spec: mapSpecFromDb(asset.spec as any),
         category: asset.category ? { ...asset.category, nombre: asset.category.name, descripcion: asset.category.description } : null,
         location: asset.location ? { ...asset.location, nombre: asset.location.name, descripcion: asset.location.description } : null,
         assignedTo: (assignments as any[])?.[0]?.user ?? null,
@@ -156,7 +183,7 @@ export async function POST(req: NextRequest) {
         categoryId:   parseInt(categoryId),
         locationId:   parseInt(locationId),
         ...(spec && {
-          spec: { create: spec },
+          spec: { create: mapSpecToDb(spec) },
         }),
         logs: {
           create: {
@@ -176,6 +203,7 @@ export async function POST(req: NextRequest) {
       serial: asset.serialNumber,
       estadoTecnico: techStatusES[asset.technicalStatus] ?? asset.technicalStatus,
       estadoUso: usageStatusES[asset.usageStatus] ?? asset.usageStatus,
+      spec: mapSpecFromDb(asset.spec as any),
     }
 
     return NextResponse.json(mappedAsset, { status: 201 })

@@ -114,17 +114,17 @@ export default function AssignmentsPage() {
 
       {/* Table */}
       <div className="table-wrapper">
-        <table>
+        <table className="responsive-table">
           <thead>
             <tr>
               <th>Activo</th>
-              <th>Código</th>
+              <th className="col-optional">Código</th>
               <th>Usuario Asignado</th>
-              <th>Departamento</th>
-              <th>Asignado Por</th>
-              <th>Fecha Inicio</th>
-              <th>Estado</th>
-              {canManage && <th>Acciones</th>}
+              <th className="col-secondary">Departamento</th>
+              <th className="col-optional">Asignado Por</th>
+              <th className="col-optional">Fecha Inicio</th>
+              <th className="col-secondary">Estado</th>
+              {canManage && <th style={{ textAlign: 'right' }}>Acciones</th>}
             </tr>
           </thead>
           <tbody>
@@ -151,15 +151,21 @@ export default function AssignmentsPage() {
               const isActive  = !!assignee
               return (
                 <tr key={asset.id}>
-                  <td>
-                    <Link href={`/assets/${asset.id}`} style={{ color: 'var(--color-accent)', textDecoration: 'none', fontWeight: 500, fontSize: 13 }}>
-                      {asset.nombre}
-                    </Link>
+                  <td className="col-title">
+                    <div>
+                      <Link href={`/assets/${asset.id}`} style={{ color: 'var(--color-accent)', textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
+                        {asset.nombre}
+                      </Link>
+                      {assignee && <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 1 }}>{assignee.name}</div>}
+                    </div>
+                    <span className={isActive ? 'badge badge-operativo' : 'badge badge-de-baja'} style={{ flexShrink: 0 }}>
+                      {isActive ? 'Activa' : 'Finalizada'}
+                    </span>
                   </td>
-                  <td style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--color-text-secondary)' }}>
-                    {asset.codigoInventario}
+                  <td className="col-optional" data-label="Código">
+                    <span className="font-mono" style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{asset.codigoInventario}</span>
                   </td>
-                  <td>
+                  <td data-label="Usuario">
                     {assignee ? (
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary)' }}>{assignee.name}</div>
@@ -167,10 +173,10 @@ export default function AssignmentsPage() {
                       </div>
                     ) : <span style={{ color: 'var(--color-text-muted)', fontSize: 12 }}>—</span>}
                   </td>
-                  <td style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>{assignee?.department ?? '—'}</td>
-                  <td style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>—</td>
-                  <td style={{ fontSize: 12, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>—</td>
-                  <td>
+                  <td className="col-secondary" data-label="Departamento" style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>{assignee?.department ?? '—'}</td>
+                  <td className="col-optional" data-label="Asignado por" style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>—</td>
+                  <td className="col-optional" data-label="Fecha inicio" style={{ fontSize: 12, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>—</td>
+                  <td className="col-secondary" data-label="Estado">
                     {isActive ? (
                       <span className="badge badge-operativo">Activa</span>
                     ) : (
@@ -178,7 +184,7 @@ export default function AssignmentsPage() {
                     )}
                   </td>
                   {canManage && (
-                    <td>
+                    <td className="col-actions" data-label="">
                       {isActive && (
                         <button
                           className="btn btn-ghost btn-sm"
@@ -192,7 +198,7 @@ export default function AssignmentsPage() {
                       <Link
                         href={`/assets/${asset.id}?tab=assignments`}
                         className="btn btn-ghost btn-sm"
-                        style={{ fontSize: 12, marginLeft: 4 }}
+                        style={{ fontSize: 12 }}
                       >
                         Ver detalle
                       </Link>

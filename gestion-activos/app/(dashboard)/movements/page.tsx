@@ -132,16 +132,16 @@ export default function MovementsPage() {
         </div>
 
         <div className="table-wrapper" style={{ border: 'none', borderRadius: 0 }}>
-          <table>
+          <table className="responsive-table">
             <thead>
               <tr>
                 <th>Activo</th>
                 <th>Traslado</th>
-                <th>Motivo</th>
-                <th>Solicitante</th>
-                <th>Fecha</th>
+                <th className="col-secondary">Motivo</th>
+                <th className="col-optional">Solicitante</th>
+                <th className="col-optional">Fecha</th>
                 <th>Estado</th>
-                {canApprove && <th>Resolución</th>}
+                {canApprove && <th>Acciones</th>}
               </tr>
             </thead>
             <tbody>
@@ -262,58 +262,61 @@ function MovementRow({ m, canApprove, onApprove, onReject }: {
   return (
     <tr style={{ opacity: m.status === 'CANCELLED' ? 0.55 : 1 }}>
 
-      {/* Asset */}
-      <td>
-        <Link href={`/assets/${m.assetId}`} style={{ color: 'var(--color-accent)', textDecoration: 'none', fontWeight: 600, fontSize: 13 }}>
-          {m.asset?.nombre}
-        </Link>
-        <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 1, fontFamily: 'monospace' }}>
-          {m.asset?.codigoInventario}
+      {/* Title cell — card header on mobile */}
+      <td className="col-title">
+        <div>
+          <Link href={`/assets/${m.assetId}`} style={{ color: 'var(--color-accent)', textDecoration: 'none', fontWeight: 600, fontSize: 13 }}>
+            {m.asset?.nombre}
+          </Link>
+          <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 1, fontFamily: 'monospace' }}>
+            {m.asset?.codigoInventario}
+          </div>
         </div>
+        <span className={requestStatusBadge(m.status as RequestStatus)} style={{ flexShrink: 0 }}>
+          {REQUEST_STATUS_LABELS[m.status as RequestStatus] ?? m.status}
+        </span>
       </td>
 
       {/* Movement route */}
-      <td>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 200 }}>
+      <td data-label="Traslado">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <LocationChip name={m.asset?.location?.nombre} current />
-          <div style={{ display: 'flex', alignItems: 'center', paddingLeft: 8 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="5 12 12 19 19 12"/></svg>
+          <div style={{ paddingLeft: 8 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="5 12 12 19 19 12"/></svg>
           </div>
           <LocationChip name={m.nuevaLocation?.nombre} destination />
         </div>
       </td>
 
       {/* Reason */}
-      <td style={{ maxWidth: 220 }}>
-        <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={m.motivo}>
+      <td className="col-secondary" data-label="Motivo">
+        <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }} title={m.motivo}>
           {m.motivo}
         </div>
       </td>
 
       {/* Requested by */}
-      <td>
+      <td className="col-optional" data-label="Solicitante">
         <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', fontWeight: 500 }}>{m.requestedBy?.name}</div>
-        <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 1 }}>{m.requestedBy?.role}</div>
       </td>
 
       {/* Date */}
-      <td style={{ whiteSpace: 'nowrap' }}>
+      <td className="col-optional" data-label="Fecha" style={{ whiteSpace: 'nowrap' }}>
         <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{timeAgo(m.createdAt)}</div>
-        <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 1 }}>{formatDateTime(m.createdAt)}</div>
       </td>
 
-      {/* Status */}
-      <td>
+      {/* Status — desktop only (mobile shows in title row) */}
+      <td data-label="Estado">
         <span className={requestStatusBadge(m.status as RequestStatus)}>
           {REQUEST_STATUS_LABELS[m.status as RequestStatus] ?? m.status}
         </span>
       </td>
 
-      {/* Actions / Resolution */}
+      {/* Actions */}
       {canApprove && (
-        <td>
+        <td className="col-actions" data-label="">
           {isPending ? (
-            <div style={{ display: 'flex', gap: 6 }}>
+            <>
               <button
                 id={`btn-approve-${m.id}`}
                 className="btn btn-sm"
@@ -326,12 +329,9 @@ function MovementRow({ m, canApprove, onApprove, onReject }: {
                 onClick={onReject}
                 style={{ background: 'rgba(239,68,68,0.08)', color: 'var(--color-danado)', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', gap: 4 }}
               ><XIcon size={13} /> Rechazar</button>
-            </div>
+            </>
           ) : m.approvedBy ? (
-            <div>
-              <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', fontWeight: 500 }}>{m.approvedBy.name}</div>
-              <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 1 }}>{timeAgo(m.updatedAt)}</div>
-            </div>
+            <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{m.approvedBy.name} · {timeAgo(m.updatedAt)}</div>
           ) : (
             <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>—</span>
           )}

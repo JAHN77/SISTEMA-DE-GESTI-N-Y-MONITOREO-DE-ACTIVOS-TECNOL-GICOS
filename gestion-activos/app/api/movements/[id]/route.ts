@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth';
+import { createNotification } from '@/lib/notifications';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -60,6 +61,30 @@ export async function PATCH(req: NextRequest, { params }: Params) {
           userId: actor.id,
         },
       });
+    }
+
+    // Notify the movement requester of the decision
+    const assetName = movement.asset?.name ?? `#${movement.assetId}`
+    if (action === 'APPROVED') {
+      await createNotification({
+        userId: movement.requestedById,
+        type: 'REQUEST_APPROVED',
+        title: 'Movimiento aprobado',
+        message: `Tu solicitud de movimiento para "${assetName}" fue aprobada.`,
+        url: `/assets/${movement.assetId}`,
+        referenceId: movement.id,
+        referenceType: 'MovementRequest',
+      })
+    } else {
+      await createNotification({
+        userId: movement.requestedById,
+        type: 'REQUEST_REJECTED',
+        title: 'Movimiento rechazado',
+        message: `Tu solicitud de movimiento para "${assetName}" fue rechazada.`,
+        url: '/movements',
+        referenceId: movement.id,
+        referenceType: 'MovementRequest',
+      })
     }
 
     return NextResponse.json(updated);

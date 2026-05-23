@@ -165,16 +165,16 @@ export default function AssetsPage() {
 
       {/* Table */}
       <div className="table-wrapper">
-        <table>
+        <table className="responsive-table">
           <thead>
             <tr>
-              <th onClick={() => handleSort('codigoInventario')}>Código <SortIcon col="codigoInventario" /></th>
-              <th onClick={() => handleSort('nombre')}>Nombre <SortIcon col="nombre" /></th>
-              <th>Categoría</th>
-              <th>Ubicación</th>
+              <th onClick={() => handleSort('nombre')}>Activo <SortIcon col="nombre" /></th>
+              <th className="col-optional">Código</th>
+              <th className="col-secondary">Categoría</th>
+              <th className="col-secondary">Ubicación</th>
               <th>Asignado a</th>
               <th>Estado Técnico</th>
-              <th>Estado de Uso</th>
+              <th className="col-optional">Estado de Uso</th>
               <th style={{ textAlign: 'right' }}>Acciones</th>
             </tr>
           </thead>
@@ -202,40 +202,47 @@ export default function AssetsPage() {
               </tr>
             ) : (assets as any[]).map(asset => (
               <tr key={asset.id}>
-                <td><span className="font-mono" style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{asset.codigoInventario}</span></td>
-                <td>
-                  <Link href={`/assets/${asset.id}`} style={{ color: 'var(--color-text-primary)', textDecoration: 'none', fontWeight: 500 }}>
-                    {asset.nombre}
-                  </Link>
-                  {asset.serial && <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>S/N: {asset.serial}</div>}
+                {/* Title cell — shown as card header on mobile */}
+                <td className="col-title">
+                  <div>
+                    <Link href={`/assets/${asset.id}`} style={{ color: 'var(--color-text-primary)', textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
+                      {asset.nombre}
+                    </Link>
+                    {asset.serial && <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 1 }}>S/N: {asset.serial}</div>}
+                  </div>
+                  {/* On mobile, show usage badge inline with title */}
+                  <span className={estadoUsoBadge(asset.estadoUso as EstadoUso)} style={{ flexShrink: 0 }}>
+                    {ESTADO_USO_LABELS[asset.estadoUso as EstadoUso]}
+                  </span>
                 </td>
-                <td style={{ color: 'var(--color-text-secondary)' }}>{asset.category?.name ?? '—'}</td>
-                <td style={{ color: 'var(--color-text-secondary)' }}>{asset.location?.nombre ?? '—'}</td>
-                <td>
+                <td className="col-optional" data-label="Código">
+                  <span className="font-mono" style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{asset.codigoInventario}</span>
+                </td>
+                <td className="col-secondary" data-label="Categoría" style={{ color: 'var(--color-text-secondary)' }}>{asset.category?.name ?? '—'}</td>
+                <td className="col-secondary" data-label="Ubicación" style={{ color: 'var(--color-text-secondary)' }}>{asset.location?.nombre ?? '—'}</td>
+                <td data-label="Asignado a">
                   {asset.assignedTo ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <div>
                       <span style={{ fontSize: 13, color: 'var(--color-text-primary)', fontWeight: 500 }}>{asset.assignedTo.name}</span>
                       {asset.assignedTo.department && (
-                        <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{asset.assignedTo.department}</span>
+                        <span style={{ fontSize: 11, color: 'var(--color-text-muted)', display: 'block' }}>{asset.assignedTo.department}</span>
                       )}
                     </div>
                   ) : (
-                    <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>—</span>
+                    <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Sin asignar</span>
                   )}
                 </td>
-                <td><span className={estadoTecnicoBadge(asset.estadoTecnico as EstadoTecnico)}>{ESTADO_TECNICO_LABELS[asset.estadoTecnico as EstadoTecnico]}</span></td>
-                <td><span className={estadoUsoBadge(asset.estadoUso as EstadoUso)}>{ESTADO_USO_LABELS[asset.estadoUso as EstadoUso]}</span></td>
-                <td>
-                  <div className="table-actions" style={{ justifyContent: 'flex-end' }}>
-                    <Link href={`/assets/${asset.id}`} className="btn btn-ghost btn-icon btn-sm" title="Ver detalle"><EyeIcon size={14} /></Link>
-                    {canEdit && (
-                      <Link href={`/assets/${asset.id}/edit`} className="btn btn-ghost btn-icon btn-sm" title="Editar"><EditIcon size={14} /></Link>
-                    )}
-                    <button className="btn btn-ghost btn-icon btn-sm" title="Solicitar movimiento" onClick={() => setMovementAsset(asset)}><TruckIcon size={14} /></button>
-                    {canAdmin && (
-                      <button className="btn btn-ghost btn-icon btn-sm" title="Eliminar" onClick={() => handleDelete(asset)} style={{ color: 'var(--color-danado)' }}><TrashIcon size={14} /></button>
-                    )}
-                  </div>
+                <td data-label="Estado"><span className={estadoTecnicoBadge(asset.estadoTecnico as EstadoTecnico)}>{ESTADO_TECNICO_LABELS[asset.estadoTecnico as EstadoTecnico]}</span></td>
+                <td className="col-optional" data-label="Uso"><span className={estadoUsoBadge(asset.estadoUso as EstadoUso)}>{ESTADO_USO_LABELS[asset.estadoUso as EstadoUso]}</span></td>
+                <td className="col-actions" data-label="">
+                  <Link href={`/assets/${asset.id}`} className="btn btn-secondary btn-sm" title="Ver detalle"><EyeIcon size={13} /> <span>Ver</span></Link>
+                  {canEdit && (
+                    <Link href={`/assets/${asset.id}/edit`} className="btn btn-ghost btn-icon btn-sm" title="Editar"><EditIcon size={13} /></Link>
+                  )}
+                  <button className="btn btn-ghost btn-icon btn-sm" title="Solicitar movimiento" onClick={() => setMovementAsset(asset)}><TruckIcon size={13} /></button>
+                  {canAdmin && (
+                    <button className="btn btn-ghost btn-icon btn-sm" title="Eliminar" onClick={() => handleDelete(asset)} style={{ color: 'var(--color-danado)' }}><TrashIcon size={13} /></button>
+                  )}
                 </td>
               </tr>
             ))}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/auth'
+import { createNotification } from '@/lib/notifications'
 import type { MaintenanceType as PrismaMaintenanceType } from '@prisma/client'
 
 type Params = { params: Promise<{ id: string }> }
@@ -93,6 +94,37 @@ export async function POST(req: NextRequest, { params }: Params) {
       })
     }
 
+    // Fetch asset name + active assignment for notifications
+    const [maintAsset, activeAssignment] = await Promise.all([
+      prisma.asset.findUnique({ where: { id: assetId }, select: { name: true } }),
+      prisma.assetAssignment.findFirst({ where: { assetId, endDate: null }, select: { userId: true } }),
+    ])
+    const maintAssetName = maintAsset?.name ?? `#${assetId}`
+    const technicianId = realizadoPorId ? parseInt(realizadoPorId) : null
+
+    if (technicianId) {
+      await createNotification({
+        userId: technicianId,
+        type: 'MAINTENANCE_DUE',
+        title: 'Mantenimiento asignado',
+        message: `Tienes un mantenimiento ${tipo} asignado para: ${maintAssetName}`,
+        url: `/assets/${assetId}?tab=maintenance`,
+        referenceId: maintenance.id,
+        referenceType: 'Maintenance',
+      })
+    }
+    if (activeAssignment && activeAssignment.userId !== technicianId) {
+      await createNotification({
+        userId: activeAssignment.userId,
+        type: 'MAINTENANCE_DUE',
+        title: 'Mantenimiento programado',
+        message: `Tu activo "${maintAssetName}" entrará en mantenimiento ${tipo}.`,
+        url: `/assets/${assetId}?tab=maintenance`,
+        referenceId: maintenance.id,
+        referenceType: 'Maintenance',
+      })
+    }
+
     return NextResponse.json(
       {
         ...maintenance,
@@ -181,6 +213,19 @@ export async function PATCH(req: NextRequest, { params }: Params) {
           },
         })
       })
+      // Notify technician if assigned
+      if (maintenance.handledById) {
+        const completedAsset = await prisma.asset.findUnique({ where: { id: assetId }, select: { name: true } })
+        await createNotification({
+          userId: maintenance.handledById,
+          type: 'MAINTENANCE_DUE',
+          title: 'Mantenimiento completado',
+          message: `Mantenimiento de "${completedAsset?.name ?? `#${assetId}`}" marcado como completado.`,
+          url: `/assets/${assetId}?tab=maintenance`,
+          referenceId: parseInt(maintenanceId),
+          referenceType: 'Maintenance',
+        })
+      }
       return NextResponse.json({ ok: true })
     }
 
@@ -203,6 +248,19 @@ export async function PATCH(req: NextRequest, { params }: Params) {
           },
         })
       })
+      // Notify technician if assigned
+      if (maintenance.handledById) {
+        const cancelledAsset = await prisma.asset.findUnique({ where: { id: assetId }, select: { name: true } })
+        await createNotification({
+          userId: maintenance.handledById,
+          type: 'MAINTENANCE_DUE',
+          title: 'Mantenimiento cancelado',
+          message: `El mantenimiento de "${cancelledAsset?.name ?? `#${assetId}`}" fue cancelado.`,
+          url: `/assets/${assetId}?tab=maintenance`,
+          referenceId: parseInt(maintenanceId),
+          referenceType: 'Maintenance',
+        })
+      }
       return NextResponse.json({ ok: true })
     }
 

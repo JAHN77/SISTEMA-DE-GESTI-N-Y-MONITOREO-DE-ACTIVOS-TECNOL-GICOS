@@ -151,7 +151,7 @@ export default function UsersPage() {
       </div>
 
       {/* Role summary cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 20 }}>
+      <div className="grid-stats-5">
         {ALL_ROLES.map(r => (
           <div
             key={r}
@@ -196,14 +196,14 @@ export default function UsersPage() {
 
       {/* Table */}
       <div className="table-wrapper">
-        <table>
+        <table className="responsive-table">
           <thead>
             <tr>
               <th>Usuario</th>
-              <th>Correo</th>
-              <th>Rol</th>
-              <th>Departamento</th>
-              <th>Registrado</th>
+              <th className="col-secondary">Correo</th>
+              <th className="col-secondary">Rol</th>
+              <th className="col-optional">Departamento</th>
+              <th className="col-optional">Registrado</th>
               {canManage && <th style={{ textAlign: 'right' }}>Acciones</th>}
             </tr>
           </thead>
@@ -224,49 +224,51 @@ export default function UsersPage() {
               </tr>
             ) : filtered.map(u => (
               <tr key={u.id}>
-                <td>
+                <td className="col-title">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{
                       width: 32, height: 32, borderRadius: '50%',
                       background: 'var(--color-bg-elevated)',
                       border: '1px solid var(--color-border)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 12, fontWeight: 600, color: 'var(--color-primary)',
+                      fontSize: 12, fontWeight: 600, color: 'var(--color-accent)',
                       flexShrink: 0,
                     }}>
                       {u.name.slice(0, 2).toUpperCase()}
                     </div>
-                    <span style={{ fontWeight: 500, color: 'var(--color-text-primary)' }}>
-                      {u.name}
-                      {u.id === me.id && (
-                        <span style={{ fontSize: 10, marginLeft: 6, color: 'var(--color-primary)', fontWeight: 600 }}>TÚ</span>
-                      )}
-                    </span>
-                  </div>
-                </td>
-                <td style={{ color: 'var(--color-text-secondary)', fontSize: 13 }}>{u.email}</td>
-                <td><span className={ROLE_BADGE[u.role]}>{ROLE_LABELS[u.role]}</span></td>
-                <td style={{ color: 'var(--color-text-secondary)' }}>{u.department ?? <span style={{ color: 'var(--color-text-muted)' }}>—</span>}</td>
-                <td style={{ color: 'var(--color-text-muted)', fontSize: 12, whiteSpace: 'nowrap' }}>{formatDate(u.createdAt)}</td>
-                {canManage && (
-                  <td>
-                    <div className="table-actions" style={{ justifyContent: 'flex-end' }}>
-                      <button
-                        id={`btn-edit-user-${u.id}`}
-                        className="btn btn-ghost btn-icon btn-sm"
-                        title="Editar rol"
-                        onClick={() => { setEditUser(u); setEditRole(u.role); setEditDept(u.department ?? '') }}
-                      ><EditIcon size={14} /></button>
-                      {isSuperAdmin && u.id !== me.id && (
-                        <button
-                          id={`btn-disable-user-${u.id}`}
-                          className="btn btn-ghost btn-icon btn-sm"
-                          title="Deshabilitar usuario"
-                          style={{ color: 'var(--color-danado)' }}
-                          onClick={() => handleDisable(u)}
-                        ><BanIcon size={14} /></button>
-                      )}
+                    <div>
+                      <div style={{ fontWeight: 600, color: 'var(--color-text-primary)', fontSize: 14 }}>
+                        {u.name}
+                        {u.id === me.id && (
+                          <span style={{ fontSize: 10, marginLeft: 6, color: 'var(--color-accent)', fontWeight: 600 }}>TÚ</span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{u.department ?? u.email}</div>
                     </div>
+                  </div>
+                  <span className={ROLE_BADGE[u.role]} style={{ flexShrink: 0 }}>{ROLE_LABELS[u.role]}</span>
+                </td>
+                <td className="col-secondary" data-label="Correo" style={{ color: 'var(--color-text-secondary)', fontSize: 13 }}>{u.email}</td>
+                <td className="col-secondary" data-label="Rol"><span className={ROLE_BADGE[u.role]}>{ROLE_LABELS[u.role]}</span></td>
+                <td className="col-optional" data-label="Departamento" style={{ color: 'var(--color-text-secondary)' }}>{u.department ?? <span style={{ color: 'var(--color-text-muted)' }}>—</span>}</td>
+                <td className="col-optional" data-label="Registrado" style={{ color: 'var(--color-text-muted)', fontSize: 12, whiteSpace: 'nowrap' }}>{formatDate(u.createdAt)}</td>
+                {canManage && (
+                  <td className="col-actions" data-label="">
+                    <button
+                      id={`btn-edit-user-${u.id}`}
+                      className="btn btn-ghost btn-icon btn-sm"
+                      title="Editar rol"
+                      onClick={() => { setEditUser(u); setEditRole(u.role); setEditDept(u.department ?? '') }}
+                    ><EditIcon size={14} /></button>
+                    {isSuperAdmin && u.id !== me.id && (
+                      <button
+                        id={`btn-disable-user-${u.id}`}
+                        className="btn btn-ghost btn-icon btn-sm"
+                        title="Deshabilitar usuario"
+                        style={{ color: 'var(--color-danado)' }}
+                        onClick={() => handleDisable(u)}
+                      ><BanIcon size={14} /></button>
+                    )}
                   </td>
                 )}
               </tr>

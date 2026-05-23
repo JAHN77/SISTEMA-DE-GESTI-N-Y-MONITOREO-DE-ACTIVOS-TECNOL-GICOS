@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/auth'
+import { createNotification } from '@/lib/notifications'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -15,6 +16,32 @@ const ASSET_INCLUDE = {
     include: { requestedBy: true, approvedBy: true, destination: true },
     orderBy: { createdAt: 'desc' as const },
   },
+}
+
+// Spec field mapping (Spanish form keys ↔ Prisma English keys)
+function mapSpecToDb(spec: Record<string, any>) {
+  const { marca, modelo, almacenamiento, sistemaOperativo, versionSO, ...rest } = spec
+  return {
+    ...(marca             !== undefined && { brand: marca }),
+    ...(modelo            !== undefined && { model: modelo }),
+    ...(almacenamiento    !== undefined && { storage: almacenamiento }),
+    ...(sistemaOperativo  !== undefined && { operatingSystem: sistemaOperativo }),
+    ...(versionSO         !== undefined && { osVersion: versionSO }),
+    ...rest,
+  }
+}
+
+function mapSpecFromDb(spec: Record<string, any> | null) {
+  if (!spec) return null
+  const { brand, model, storage, operatingSystem, osVersion, ...rest } = spec
+  return {
+    ...rest,
+    marca: brand,
+    modelo: model,
+    almacenamiento: storage,
+    sistemaOperativo: operatingSystem,
+    versionSO: osVersion,
+  }
 }
 
 // DB → Spanish translations
@@ -84,6 +111,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       serial: asset.serialNumber,
       estadoTecnico: techStatusES[asset.technicalStatus] ?? asset.technicalStatus,
       estadoUso: usageStatusES[asset.usageStatus] ?? asset.usageStatus,
+      spec: mapSpecFromDb(asset.spec as any),
       category: asset.category
         ? { ...asset.category, nombre: asset.category.name, descripcion: asset.category.description }
         : null,
@@ -135,7 +163,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         ...(categoryId    && { categoryId: parseInt(categoryId) }),
         ...(locationId    && { locationId: parseInt(locationId) }),
         ...(spec && {
-          spec: { upsert: { create: spec, update: spec } },
+          spec: { upsert: { create: mapSpecToDb(spec), update: mapSpecToDb(spec) } },
         }),
         logs: {
           create: [
@@ -152,6 +180,26 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       include: ASSET_INCLUDE,
     })
 
+    // Notify assigned user when asset enters a critical state
+    const criticalStates = ['DANADO', 'FUERA_DE_SERVICIO', 'DE_BAJA']
+    if (stateChanged && estadoTecnico && criticalStates.includes(estadoTecnico)) {
+      const activeAssignment = await prisma.assetAssignment.findFirst({
+        where: { assetId: parseInt(id), endDate: null },
+        select: { userId: true },
+      })
+      if (activeAssignment) {
+        await createNotification({
+          userId: activeAssignment.userId,
+          type: 'ASSET_DECOMMISSIONED',
+          title: 'Activo fuera de servicio',
+          message: `El activo "${existing.name}" cambió de estado a ${estadoTecnico.replace(/_/g, ' ')}.`,
+          url: `/assets/${id}`,
+          referenceId: parseInt(id),
+          referenceType: 'Asset',
+        })
+      }
+    }
+
     const mappedAsset = {
       ...asset,
       nombre: asset.name,
@@ -159,6 +207,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       serial: asset.serialNumber,
       estadoTecnico: techStatusES[asset.technicalStatus] ?? asset.technicalStatus,
       estadoUso: usageStatusES[asset.usageStatus] ?? asset.usageStatus,
+      spec: mapSpecFromDb(asset.spec as any),
     }
 
     return NextResponse.json(mappedAsset)

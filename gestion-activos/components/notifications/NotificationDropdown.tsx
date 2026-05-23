@@ -41,7 +41,11 @@ export default function NotificationDropdown() {
     }
   }
 
-  useEffect(() => { loadNotifications() }, [])
+  useEffect(() => {
+    loadNotifications()
+    const interval = setInterval(loadNotifications, 60_000)
+    return () => clearInterval(interval)
+  }, [])
 
   async function markRead(id: number) {
     await fetch(`/api/notifications/${id}`, { method: 'PATCH' })
@@ -49,8 +53,7 @@ export default function NotificationDropdown() {
   }
 
   async function markAllRead() {
-    const unreadIds = notifications.filter(n => !n.read).map(n => n.id)
-    await Promise.all(unreadIds.map(id => fetch(`/api/notifications/${id}`, { method: 'PATCH' })))
+    await fetch('/api/notifications/read-all', { method: 'PATCH' })
     setNotifs(prev => prev.map(n => ({ ...n, read: true })))
   }
 
@@ -68,11 +71,15 @@ export default function NotificationDropdown() {
         </svg>
         {unread > 0 && (
           <span style={{
-            position: 'absolute', top: 2, right: 2,
-            width: 8, height: 8, borderRadius: '50%',
-            background: 'var(--color-danado)',
-            border: '1.5px solid var(--color-bg-surface)',
-          }} />
+            position: 'absolute', top: -2, right: -2,
+            minWidth: 16, height: 16, borderRadius: 99,
+            background: 'var(--color-danado)', color: '#fff',
+            fontSize: 9, fontWeight: 700,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '0 3px', border: '1.5px solid var(--color-bg-surface)',
+          }}>
+            {unread > 9 ? '9+' : unread}
+          </span>
         )}
       </button>
 
@@ -104,7 +111,7 @@ export default function NotificationDropdown() {
             </div>
 
             {/* List */}
-            <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+            <div style={{ maxHeight: 320, overflowY: 'auto' }}>
               {loading ? (
                 <div style={{ padding: 20, textAlign: 'center', color: 'var(--color-text-muted)', fontSize: 13 }}>Cargando...</div>
               ) : notifications.length === 0 ? (
@@ -147,6 +154,14 @@ export default function NotificationDropdown() {
                 ) : content
               })}
             </div>
+            {/* Footer */}
+            <Link
+              href="/notifications"
+              onClick={() => setOpen(false)}
+              style={{ display: 'block', padding: '10px 14px', textAlign: 'center', fontSize: 12, color: 'var(--color-accent)', borderTop: '1px solid var(--color-border)', textDecoration: 'none', fontWeight: 500 }}
+            >
+              Ver todas las notificaciones →
+            </Link>
           </div>
         </>
       )}
